@@ -15,8 +15,8 @@
  */
 package ac.simons.garmin;
 
-
 import static javax.measure.MetricPrefix.CENTI;
+import static javax.measure.MetricPrefix.KILO;
 import static javax.measure.MetricPrefix.MILLI;
 import static tech.units.indriya.unit.Units.KILOGRAM;
 import static tech.units.indriya.unit.Units.LITRE;
@@ -29,12 +29,14 @@ import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import javax.measure.MetricPrefix;
 import javax.measure.Quantity;
 import javax.measure.Unit;
 import javax.measure.quantity.Length;
@@ -47,15 +49,15 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import tech.units.indriya.ComparableQuantity;
 import tech.units.indriya.quantity.Quantities;
 import tech.units.indriya.unit.ProductUnit;
-import tech.units.indriya.unit.Units;
 
 /**
  * Program for massaging Garmin GDPR archive into something usable.
  *
- * @author Michael J. SImons
+ * @author Michael J. Simons
  */
 public final class GarminBabel {
 
+	private static final Unit<Pace> MINUTES_PER_KM = new ProductUnit<>(MINUTE.divide(KILO(METRE)));
 	private static final Unit<Speed> CENTIMETRE_PER_SECOND = new ProductUnit<>(CENTI(METRE).divide(MILLI(SECOND)));
 	private static final Unit<VO2Max> VO2_MAX = new ProductUnit<>(MILLI(LITRE).divide(MINUTE.multiply(KILOGRAM)));
 	private static final TypeReference<Map<String, Object>> MAP_OF_OBJECTS = new TypeReference<>() {
@@ -64,6 +66,7 @@ public final class GarminBabel {
 	record Activity(
 		long garminId,
 		String name,
+		Instant startedOn,
 		String activityType,
 		String sportType,
 		Quantity<Length> distance,
@@ -83,9 +86,17 @@ public final class GarminBabel {
 
 	static Activity activity(Map<String, ?> source) {
 
+		Instant startedOn;
+		if (source.containsKey("beginTimestamp")) {
+			startedOn = Instant.ofEpochMilli((Long) source.get("beginTimestamp"));
+		} else {
+			startedOn = ZonedDateTime.ofInstant(Instant.ofEpochMilli(((BigDecimal) source.get("startTimeGmt")).longValue()), ZoneId.of("GMT")).toInstant();
+		}
+
 		return new Activity(
 			((Number) source.get("activityId")).longValue(),
 			(String) source.get("name"),
+			startedOn,
 			(String) source.get("activityType"),
 			(String) source.get("sportType"),
 			source.containsKey("distance") ? Quantities.getQuantity((BigDecimal) source.get("distance"), CENTI(METRE)) : null,
@@ -100,6 +111,9 @@ public final class GarminBabel {
 	}
 
 	interface VO2Max extends Quantity<VO2Max> {
+	}
+
+	interface Pace extends Quantity<Pace> {
 	}
 
 	public static void main(String... a) throws IOException {
@@ -121,29 +135,22 @@ public final class GarminBabel {
 
 			List<Activity> activities = new ArrayList<>();
 			while (parser.nextToken() != JsonToken.END_ARRAY) {
-				var activity = activity(mapper.readValue(parser, MAP_OF_OBJECTS));
+				var source = mapper.readValue(parser, MAP_OF_OBJECTS);
+				var activity = activity(source);
 				activities.add(activity);
 			}
 
 			// Fasted run
-			Optional<? extends ComparableQuantity<?>> fastestRun = activities.stream()
+			Optional<ComparableQuantity<Pace>> fastestRun = activities.stream()
 				.filter(activity -> "running".equals(activity.activityType) && activity.avgSpeed != null)
-				.map(activity -> Quantities.getQuantity(60, MINUTE).divide(activity.avgSpeed.to(Units.KILOMETRE_PER_HOUR)))
-				.sorted()
-				.min(ComparableQuantity::compareTo);
+				.map(activity -> (ComparableQuantity<Pace>) activity.avgSpeed.inverse().asType(Pace.class).to(MINUTES_PER_KM))
+				.min(Comparable::compareTo);
 
 			// Total distance
 			var totalDistance = activities.stream()
 				.filter(ac -> ac.distance != null)
 				.map(Activity::distance)
-				.reduce(Quantities.getQuantity(0, CENTI(METRE)), Quantity::add).to(MetricPrefix.KILO(METRE));
+				.reduce(Quantities.getQuantity(0, CENTI(METRE)), Quantity::add).to(KILO(METRE));
 		}
 	}
-
-// DL Files
-// curl -L 'https://connect.garmin.com/download-service/files/activity/id' \
-// 	-H 'Authorization: Bearer <token>' \
-// 	-H 'Cookie: JWT_FGP=<jwt>; SESSIONID=<sessionId>' \
-// 	-H 'DI-Backend: connectapi.garmin.com' \
-// 	--output foo.zip
 }
