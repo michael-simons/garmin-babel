@@ -20,12 +20,3 @@ curl 'https://connect.garmin.com/download-service/export/<gpx|tcx>/activity/<id>
     -H 'DI-Backend: connectapi.garmin.com' \
     --output f.<gpx|tcx>
 ```
-
-### Data loading, i.e. MariaDB
-
-```sql
-LOAD DATA INFILE 'test.csv'
-INTO TABLE x
-(@started_on)
-SET p = str_to_date(@started_on, '%Y-%m-%dT%H:%i:%sZ');
-```
