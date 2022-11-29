@@ -83,12 +83,6 @@ import tech.units.indriya.quantity.Quantities;
 )
 public final class Application implements Runnable {
 
-	/*
-	@Option(names = {"-u", "--user-name"}, required = true, description = "User name inside the archive")
-	private String userName;
-*/
-
-
 	@Option(names = "--start-date", description = "A lower, inclusive bound for entries to be included")
 	private LocalDate startDate = null;
 
@@ -169,7 +163,6 @@ public final class Application implements Runnable {
 		var zoneDateTimeParser = DateTimeFormatter.ISO_LOCAL_DATE_TIME.withZone(ZoneId.systemDefault());
 		var instantParser = DateTimeFormatter.ISO_LOCAL_DATE_TIME.withZone(ZoneId.of("GMT"));
 
-		OutputStream needsClosing;
 		try (
 			var in = new BufferedInputStream(Files.newInputStream(userBiometrics));
 			var out = AppendableHolder.of(target);
@@ -226,7 +219,7 @@ public final class Application implements Runnable {
 		}
 
 		var localDate = LocalDate.ofInstant(instant, ZoneId.systemDefault());
-		if (this.startDate != null && (localDate.isBefore(startDate) || instant.equals(startDate))) {
+		if (this.startDate != null && (localDate.isBefore(startDate) || localDate.equals(startDate))) {
 			return false;
 		}
 
