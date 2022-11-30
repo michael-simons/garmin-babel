@@ -16,19 +16,18 @@
     limitations under the License.
 
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-		 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
-	<properties>
-		<commons-csv.version>1.9.0</commons-csv.version>
-	</properties>
 	<parent>
 		<groupId>eu.michael-simons</groupId>
 		<artifactId>garmin-babel</artifactId>
-		<version>1-ea</version>
+		<version>1.0.0-SNAPSHOT</version>
 	</parent>
 
 	<artifactId>garmin-babel.app</artifactId>
+	<properties>
+		<commons-csv.version>1.9.0</commons-csv.version>
+	</properties>
 
 	<dependencies>
 		<dependency>
@@ -40,13 +39,13 @@
 			<artifactId>picocli</artifactId>
 		</dependency>
 		<dependency>
-			<groupId>tech.units</groupId>
-			<artifactId>indriya</artifactId>
-		</dependency>
-		<dependency>
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-csv</artifactId>
 			<version>${commons-csv.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>tech.units</groupId>
+			<artifactId>indriya</artifactId>
 		</dependency>
 	</dependencies>
 
@@ -59,10 +58,10 @@
 				<executions>
 					<execution>
 						<id>add-module-infos</id>
-						<phase>generate-resources</phase>
 						<goals>
 							<goal>add-module-info</goal>
 						</goals>
+						<phase>generate-resources</phase>
 						<configuration>
 							<outputDirectory>${project.build.directory}/modules</outputDirectory>
 							<overwriteExistingFiles>true</overwriteExistingFiles>
@@ -73,11 +72,9 @@
 										<artifactId>javax.inject</artifactId>
 										<version>1</version>
 									</artifact>
-									<moduleInfoSource>
-										module javax.inject {
+									<moduleInfoSource>module javax.inject {
 											exports javax.inject;
-										}
-									</moduleInfoSource>
+										}</moduleInfoSource>
 								</module>
 								<module>
 									<artifact>
@@ -85,16 +82,21 @@
 										<artifactId>commons-csv</artifactId>
 										<version>${commons-csv.version}</version>
 									</artifact>
-									<moduleInfoSource>
-										module commons.csv {
+									<moduleInfoSource>module commons.csv {
 											exports org.apache.commons.csv;
-										}
-									</moduleInfoSource>
+										}</moduleInfoSource>
 								</module>
 							</modules>
 						</configuration>
 					</execution>
 				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.jreleaser</groupId>
+				<artifactId>jreleaser-maven-plugin</artifactId>
+				<configuration>
+					<skip>true</skip>
+				</configuration>
 			</plugin>
 		</plugins>
 	</build>

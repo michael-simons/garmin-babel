@@ -1,0 +1,79 @@
+name: release
+
+on:
+  workflow_dispatch:
+  create:
+    tags:
+      - '*'
+
+jobs:
+  create_bundles:
+    name: 'Create bundle for ${{ matrix.os }}'
+    strategy:
+      fail-fast: true
+      matrix:
+        os: [ ubuntu-latest, macos-latest, windows-latest ]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: 'Set up JDK'
+        uses: actions/setup-java@v3
+        with:
+          distribution: zulu
+          java-version: 17
+
+      - name: 'Prepare git'
+        run: git config --global core.autocrlf false
+
+      - name: 'Prepare branch name'
+        if: (github.event_name == 'create' && github.event.ref_type == 'tag')
+        run: >
+          echo "refName=${GITHUB_REF##*/}" >> $GITHUB_ENV
+
+      - name: 'Checkout relevant branch'
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ env.refName }}
+
+      - name: 'Create bundle'
+        run: >
+          ./mvnw --no-transfer-progress package
+
+      - name: 'Upload build artifact'
+        uses: actions/upload-artifact@v3
+        with:
+          name: artifacts
+          path: bundle/target/garmin-babel*.zip
+
+  release:
+    needs: [ create_bundles ]
+    runs-on: ubuntu-latest
+    steps:
+      - name: 'Prepare branch name'
+        if: (github.event_name == 'create' && github.event.ref_type == 'tag')
+        run: >
+          echo "refName=${GITHUB_REF##*/}" >> $GITHUB_ENV
+
+      - name: 'Checkout relevant branch'
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ env.refName }}
+          fetch-depth: 0
+
+      - name: 'Download all build artifacts'
+        uses: actions/download-artifact@v2
+        with:
+          name: artifacts
+          path: bundle/target
+
+      - name: 'Restore Maven packages'
+        uses: actions/cache@v3
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}-${{ github.sha }}
+          restore-keys: ${{ runner.os }}-m2
+
+      - name: 'Create release'
+        env:
+          JRELEASER_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: ./mvnw --no-transfer-progress jreleaser:full-release

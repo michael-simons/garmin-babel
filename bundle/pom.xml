@@ -16,13 +16,12 @@
     limitations under the License.
 
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-		 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<parent>
 		<groupId>eu.michael-simons</groupId>
 		<artifactId>garmin-babel</artifactId>
-		<version>1-ea</version>
+		<version>1.0.0-SNAPSHOT</version>
 	</parent>
 
 	<artifactId>garmin-babel.bundle</artifactId>
@@ -48,13 +47,27 @@
 				<artifactId>maven-jlink-plugin</artifactId>
 				<extensions>true</extensions>
 				<configuration>
-					<finalName>garmin-babel</finalName>
+					<finalName>${project.parent.artifactId}-${project.version}-${os.detected.classifier}</finalName>
 					<launcher>garmin-babel=garmin.babel/ac.simons.garmin.Application</launcher>
 					<modulePaths>
 						<modulePath>${project.basedir}/../app/target/modules</modulePath>
 					</modulePaths>
 				</configuration>
 			</plugin>
+			<plugin>
+				<groupId>org.jreleaser</groupId>
+				<artifactId>jreleaser-maven-plugin</artifactId>
+				<configuration>
+					<skip>true</skip>
+				</configuration>
+			</plugin>
 		</plugins>
+		<extensions>
+			<extension>
+				<groupId>kr.motd.maven</groupId>
+				<artifactId>os-maven-plugin</artifactId>
+				<version>${os-maven-plugin.version}</version>
+			</extension>
+		</extensions>
 	</build>
 </project>

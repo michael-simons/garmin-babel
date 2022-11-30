@@ -21,8 +21,12 @@
 
 	<groupId>eu.michael-simons</groupId>
 	<artifactId>garmin-babel</artifactId>
-	<version>1-ea</version>
+	<version>1.0.0-SNAPSHOT</version>
 	<packaging>pom</packaging>
+
+	<name>Garmin Babel</name>
+	<description>Tooling for the archive created by Garmin datamanagement.</description>
+	<url>https://github.com/michael-simons/garmin-babel</url>
 
 	<inceptionYear>2022</inceptionYear>
 	<organization>
@@ -55,10 +59,12 @@
 	</modules>
 
 	<properties>
+		<artifactsDir>bundle/target</artifactsDir>
 		<assertj.version>3.23.1</assertj.version>
 		<checkstyle.version>10.4</checkstyle.version>
 		<indriya.version>2.1.3</indriya.version>
 		<jackson.version>2.14.0</jackson.version>
+		<jreleaser-maven-plugin.version>1.3.1</jreleaser-maven-plugin.version>
 		<junit-jupiter.version>5.9.1</junit-jupiter.version>
 		<license-maven-plugin.version>4.2.rc2</license-maven-plugin.version>
 		<maven-checkstyle-plugin.version>3.2.0</maven-checkstyle-plugin.version>
@@ -72,12 +78,13 @@
 		<maven.compiler.release>17</maven.compiler.release>
 		<maven.version>3.8.4</maven.version>
 		<mockito.version>4.9.0</mockito.version>
+		<moditect-maven-plugin.version>1.0.0.RC2</moditect-maven-plugin.version>
+		<os-maven-plugin.version>1.7.1</os-maven-plugin.version>
 		<picocli.version>4.7.0</picocli.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 		<sortpom-maven-plugin.version>3.2.0</sortpom-maven-plugin.version>
 		<unit-api.version>2.1.3</unit-api.version>
-		<moditect-maven-plugin.version>1.0.0.RC2</moditect-maven-plugin.version>
 	</properties>
 
 	<dependencyManagement>
@@ -107,6 +114,11 @@
 				<version>${unit-api.version}</version>
 			</dependency>
 			<dependency>
+				<groupId>tech.units</groupId>
+				<artifactId>indriya</artifactId>
+				<version>${indriya.version}</version>
+			</dependency>
+			<dependency>
 				<groupId>org.assertj</groupId>
 				<artifactId>assertj-core</artifactId>
 				<version>${assertj.version}</version>
@@ -123,11 +135,6 @@
 				<artifactId>mockito-junit-jupiter</artifactId>
 				<version>${mockito.version}</version>
 				<scope>test</scope>
-			</dependency>
-			<dependency>
-				<groupId>tech.units</groupId>
-				<artifactId>indriya</artifactId>
-				<version>${indriya.version}</version>
 			</dependency>
 		</dependencies>
 	</dependencyManagement>
@@ -204,6 +211,11 @@
 				<plugin>
 					<artifactId>maven-surefire-plugin</artifactId>
 					<version>${maven-surefire-plugin.version}</version>
+				</plugin>
+				<plugin>
+					<groupId>org.jreleaser</groupId>
+					<artifactId>jreleaser-maven-plugin</artifactId>
+					<version>${jreleaser-maven-plugin.version}</version>
 				</plugin>
 			</plugins>
 		</pluginManagement>
@@ -379,6 +391,51 @@
 							<addBuildEnvironmentEntries>true</addBuildEnvironmentEntries>
 						</manifest>
 					</archive>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.jreleaser</groupId>
+				<artifactId>jreleaser-maven-plugin</artifactId>
+				<inherited>false</inherited>
+				<configuration>
+					<jreleaser>
+						<project>
+							<name>garmin-babel</name>
+						</project>
+						<release>
+							<github>
+								<skipTag>true</skipTag>
+								<tagName>{{projectVersion}}</tagName>
+								<releaseName>{{projectVersion}}</releaseName>
+								<branch>main</branch>
+								<changelog>
+									<formatted>ALWAYS</formatted>
+									<contentTemplate>etc/jreleaser/changelog.md.tpl</contentTemplate>
+									<format>- {{commitShortHash}} {{commitTitle}}</format>
+									<preset>conventional-commits</preset>
+								</changelog>
+							</github>
+						</release>
+						<distributions>
+							<garmin-babel>
+								<type>JLINK</type>
+								<artifacts>
+									<artifact>
+										<path>{{artifactsDir}}/{{projectName}}-{{projectVersion}}-linux-x86_64.zip</path>
+										<platform>linux-x86_64</platform>
+									</artifact>
+									<artifact>
+										<path>{{artifactsDir}}/{{projectName}}-{{projectVersion}}-windows-x86_64.zip</path>
+										<platform>windows-x86_64</platform>
+									</artifact>
+									<artifact>
+										<path>{{artifactsDir}}/{{projectName}}-{{projectVersion}}-osx-x86_64.zip</path>
+										<platform>osx-x86_64</platform>
+									</artifact>
+								</artifacts>
+							</garmin-babel>
+						</distributions>
+					</jreleaser>
 				</configuration>
 			</plugin>
 		</plugins>
