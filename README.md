@@ -102,7 +102,7 @@ Get all cycling activities longer than 75km prior to second half of 2022, prepar
 For aggregating I recommend importing the CSV data into a proper database. SQLite is a pretty good choice for ad-hoc queries on CSV.
 Here are two examples that I found useful:
 
-### Getting the fast half-marathon:
+### Getting the 10 fastest long runs
 
 ```bash
 sqlite3 :memory: \
@@ -111,16 +111,22 @@ sqlite3 :memory: \
  "WITH 
    runs AS (
      SELECT name, 
-            cast(avg_speed as number) as avg_speed, 
             3600.0/cast(avg_speed as number) AS pace, 
             cast(distance AS number) AS distance
      FROM activities
      WHERE sport_type = 'RUNNING'
        AND cast(distance AS number) > 20
    ),
-   m AS (SELECT max(avg_speed) AS max_speed FROM runs)
-SELECT runs.name, runs.distance, cast(pace/60 AS int) || ':' || cast(pace%60 AS int) 
-FROM m JOIN runs ON runs.avg_speed = m.max_speed"
+   paced_runs AS (
+     SELECT name, distance, cast(pace/60 AS int) || ':' || cast(pace%60 AS int) AS pace FROM runs
+   ),
+   ranked_runs AS (
+     SELECT name, distance, pace, dense_rank() OVER (ORDER BY pace ASC) AS rnk
+     FROM paced_runs
+     GROUP BY name, distance
+   )
+SELECT rnk, name, distance, pace
+FROM ranked_runs WHERE rnk <= 10"
 ```
 
 ### What gear did I use the most
