@@ -15,34 +15,13 @@
  */
 package ac.simons.garmin;
 
-import static javax.measure.MetricPrefix.KILO;
-
-import javax.measure.Quantity;
-import javax.measure.Unit;
-
-import tech.units.indriya.unit.Units;
-
 /**
- * Named units for use in the CLI.
+ * DTO for a generic gear item
  *
- * @author Michael J. SImons
+ * @author Michael J. Simons
+ * @param garminId     The id used by Garmin
+ * @param makeAndModel Plain text for make and model
  * @since 1.0.0
  */
-enum NamedUnit {
-	GRAM(Units.GRAM),
-	KILOGRAM(Units.KILOGRAM),
-	KILOMETRE(KILO(Units.METRE)),
-	METRE(Units.METRE),
-	KPH(Units.KILOMETRE_PER_HOUR),
-	MPS(Units.METRE_PER_SECOND);
-
-	final Unit<?> unit;
-
-	NamedUnit(Unit<?> unit) {
-		this.unit = unit;
-	}
-
-	public <T extends Quantity<T>> Unit<T> getUnit(Class<T> type) {
-		return unit.asType(type);
-	}
+public record Gear(long garminId, String makeAndModel) {
 }

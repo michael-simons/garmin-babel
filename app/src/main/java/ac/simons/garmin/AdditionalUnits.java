@@ -33,7 +33,7 @@ import tech.units.indriya.unit.ProductUnit;
  * A bunch of additional sporty units.
  *
  * @author Michael J. Simons
- * @since 1.0
+ * @since 1.0.0
  */
 final class AdditionalUnits {
 

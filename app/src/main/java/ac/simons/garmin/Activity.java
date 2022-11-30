@@ -23,12 +23,15 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 import javax.measure.Quantity;
 import javax.measure.quantity.Length;
 import javax.measure.quantity.Speed;
 
+import tech.units.indriya.ComparableQuantity;
 import tech.units.indriya.quantity.Quantities;
 
 /**
@@ -52,7 +55,8 @@ import tech.units.indriya.quantity.Quantities;
  * @param startLatitude   Latitude on which the activity startet
  * @param endLongitude    Longitude on which the activity ended
  * @param endLatitude     Latitude on which the activity ended
- * @since 1.0
+ * @param gear            Mutable list of gear.
+ * @since 1.0.0
  */
 record Activity(
 	long garminId,
@@ -60,10 +64,10 @@ record Activity(
 	Instant startedOn,
 	String activityType,
 	String sportType,
-	Quantity<Length> distance,
-	Quantity<Length> elevationGain,
-	Quantity<Speed> avgSpeed,
-	Quantity<Speed> maxSpeed,
+	ComparableQuantity<Length> distance,
+	ComparableQuantity<Length> elevationGain,
+	ComparableQuantity<Speed> avgSpeed,
+	ComparableQuantity<Speed> maxSpeed,
 	Duration duration,
 	Duration elapsedDuration,
 	Duration movingDuration,
@@ -71,7 +75,8 @@ record Activity(
 	BigDecimal startLongitude,
 	BigDecimal startLatitude,
 	BigDecimal endLongitude,
-	BigDecimal endLatitude
+	BigDecimal endLatitude,
+	List<String> gear
 ) {
 
 	static Activity of(Map<String, ?> source) {
@@ -100,7 +105,8 @@ record Activity(
 			source.containsKey("startLongitude") ? (BigDecimal) source.get("startLongitude") : null,
 			source.containsKey("startLatitude") ? (BigDecimal) source.get("startLatitude") : null,
 			source.containsKey("endLongitude") ? (BigDecimal) source.get("endLongitude") : null,
-			source.containsKey("endLatitude") ? (BigDecimal) source.get("endLatitude") : null
+			source.containsKey("endLatitude") ? (BigDecimal) source.get("endLatitude") : null,
+			new ArrayList<>()
 		);
 	}
 

@@ -26,7 +26,7 @@ import javax.measure.quantity.Mass;
  * @author Michael J. Simons
  * @param measuredOn The moment in time the measure was taken
  * @param value      The actual value
- * @since 1.0
+ * @since 1.0.0
  */
 public record WeightMeasurement(Instant measuredOn, Quantity<Mass> value) {
 }

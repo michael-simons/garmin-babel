@@ -98,6 +98,19 @@
 					<skip>true</skip>
 				</configuration>
 			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-jar-plugin</artifactId>
+				<version>${maven-jar-plugin.version}</version>
+				<configuration>
+					<archive>
+						<manifest>
+							<addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+							<addBuildEnvironmentEntries>true</addBuildEnvironmentEntries>
+						</manifest>
+					</archive>
+				</configuration>
+			</plugin>
 		</plugins>
 	</build>
 </project>
