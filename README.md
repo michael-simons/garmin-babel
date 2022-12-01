@@ -39,6 +39,22 @@ The following will export all activities into a csv file.
    dump-activities -u michael.simons \
    activities.csv
 ```
+
+You can create a SQLite database with it like this:
+
+```bash
+sqlite3 activities.sqlite \
+  'CREATE TABLE IF NOT EXISTS activities (
+     garmin_id number, name varchar(256), started_on timestamp, activity_type varchar(32), sport_type varchar(32), distance number, elevation_gain number, avg_speed number, max_speed number, duration number, elapsed_duration, moving_duration number, v_o_2_max number, start_longitude decimal(12,8), start_latitude decimal(12,8), end_longitude decimal(12,8), end_latitude decimal(12,8), gear varchar(256),
+     unique(garmin_id)
+  )' \
+  '.mode csv' \
+  '.import activities.csv activities' \
+  '.q'
+```
+
+In the examples further down the line I have omitted a proper table for the imports and just worked in memory, accepting that I need to cast the types manually.
+
 ### Filtering
 
 #### Filter by date and type
