@@ -34,7 +34,3 @@ build/
 dependency-reduced-pom.xml
 \.*.swp
 .flattened-pom.xml
-
-demo/
-garmin-babel/
-garmin-babel-*.zip
