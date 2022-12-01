@@ -16,8 +16,7 @@
     limitations under the License.
 
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-		 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<parent>
 		<groupId>eu.michael-simons</groupId>
@@ -145,6 +144,68 @@
 			</properties>
 		</profile>
 		<profile>
+			<id>noarch</id>
+			<activation>
+				<property>
+					<name>noarch</name>
+				</property>
+			</activation>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.codehaus.mojo</groupId>
+						<artifactId>appassembler-maven-plugin</artifactId>
+						<version>${appassembler-maven-plugin.version}</version>
+						<configuration>
+							<assembleDirectory>${project.build.directory}/assembly</assembleDirectory>
+							<repositoryLayout>flat</repositoryLayout>
+							<repositoryName>lib</repositoryName>
+							<programs>
+								<program>
+									<mainClass>${name-of-main-class}</mainClass>
+									<id>${project.parent.artifactId}</id>
+								</program>
+							</programs>
+						</configuration>
+						<executions>
+							<execution>
+								<id>make-distribution</id>
+								<goals>
+									<goal>assemble</goal>
+								</goals>
+								<phase>package</phase>
+							</execution>
+						</executions>
+					</plugin>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-assembly-plugin</artifactId>
+						<configuration>
+							<encoding>UTF-8</encoding>
+							<appendAssemblyId>false</appendAssemblyId>
+						</configuration>
+						<executions>
+							<execution>
+								<id>assembly-java</id>
+								<goals>
+									<goal>single</goal>
+								</goals>
+								<phase>package</phase>
+								<configuration>
+									<outputDirectory>${project.basedir}/../target/artifacts</outputDirectory>
+									<finalName>${project.parent.artifactId}-${project.version}</finalName>
+									<attach>false</attach>
+									<descriptors>
+										<descriptor>src/main/assembly/assembly-java.xml</descriptor>
+									</descriptors>
+								</configuration>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+		<profile>
 			<id>native</id>
 			<activation>
 				<property>
@@ -161,7 +222,7 @@
 						<configuration>
 							<requiredVersion>22.3</requiredVersion>
 							<mainClass>${name-of-main-class}</mainClass>
-							<imageName>garmin-babel</imageName>
+							<imageName>${project.parent.artifactId}</imageName>
 							<buildArgs>
 								<arg>--no-fallback</arg>
 							</buildArgs>
@@ -187,8 +248,10 @@
 								</goals>
 								<phase>package</phase>
 								<configuration>
-									<finalName>garmin-babel-${project.version}-${os.detected.classifier}</finalName>
+									<outputDirectory>${project.basedir}/../target/artifacts</outputDirectory>
+									<finalName>${project.parent.artifactId}-${project.version}-${os.detected.classifier}-native</finalName>
 									<attach>false</attach>
+									<appendAssemblyId>false</appendAssemblyId>
 									<descriptors>
 										<descriptor>src/main/assembly/assembly-native.xml</descriptor>
 									</descriptors>

@@ -201,7 +201,7 @@ public final class Application implements Runnable {
 	}
 
 	@SuppressWarnings("unchecked")
-	@Command(name = "dump-weights")
+	@Command(name = "dump-weights", description = "Dumps weight measurements from your biometrics in the archive, either to stdout or into a file")
 	void dumpWeights(@Parameters(index = "0", arity = "0..1", description = "Optional target file, will be overwritten") Optional<Path> target) throws IOException, InvocationTargetException, IllegalAccessException {
 
 		var baseDir = assertArchive();
@@ -260,7 +260,7 @@ public final class Application implements Runnable {
 		FIT
 	}
 
-	@Command(name = "dump-activities")
+	@Command(name = "dump-activities", description = "Dumps activities from your archive, either to stdout or into a file")
 	void dumpActivities(
 		@Option(names = {"-u", "--user-name"}, required = true, description = "User name inside the archive")
 		String userName,
@@ -423,9 +423,7 @@ public final class Application implements Runnable {
 					}
 				})
 				.thenApply(path -> {
-					path.ifPresent(v -> {
-						System.err.printf("Stored data for %d (%s) as %s%n", activity.garminId(), activity.name(), v.toAbsolutePath());
-					});
+					path.ifPresent(v -> System.err.printf("Stored data for %d %s as %s%n", activity.garminId(), activity.name() == null ? "" : "(" + activity.name() + ")", v.toAbsolutePath()));
 					return path;
 				}))
 			.exceptionally(e -> {
@@ -441,7 +439,7 @@ public final class Application implements Runnable {
 	}
 
 	@SuppressWarnings("unchecked")
-	@Command(name = "dump-gear")
+	@Command(name = "dump-gear", description = "Dumps all gear from your archive, either to stdout or into a file")
 	void dumpGear(
 		@Option(names = {"-u", "--user-name"}, required = true, description = "User name inside the archive")
 		String userName,

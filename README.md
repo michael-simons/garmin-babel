@@ -4,7 +4,7 @@ A Java program to massage Garmin data exported via [Garmin GDPR management](http
 into usable CSV files for further processing.
 
 ⚠️ This program is not in any way, shape or form associated, supported or sponsored by Garmin. 
-It's a personal project suiting my needs. It may or may not be helpful to other people. ⚠️
+It's a personal project suiting my needs. It may or may not be helpful to other people.
 
 ## Building the tool
 
@@ -17,13 +17,15 @@ You need Java 17 or higher installed to build the program. Build should be quite
 ## Prebuild artifacts
 
 I have a limited, untested set of packages for various operating systems on the [release page](https://github.com/michael-simons/garmin-babel/releases).
-They all come with batteries - aka Java - included. You can use them as follow (exampel from macOS, on Windows it will look a bit different):
+They all come with batteries - aka Java - included. You can use them as follows (the example uses the Java distribution, but we also have native binaries not requiring a JVM):
 
 ```bash
 curl -LO https://github.com/michael-simons/garmin-babel/releases/download/early-access/garmin-babel-1.0.0-SNAPSHOT-osx-x86_64.zip
 unzip garmin-babel-1.0.0-SNAPSHOT-osx-x86_64.zip -d garmin-babel
 ./garmin-babel/bin/garmin-babel --version 
 ```
+
+ℹ️ All archives with _native_ in their name can be run standalone, without a Java virtual machine. The ones with an operating system in their name are custom JVM bundles and OS specific. In case your operating system is not in the list, grab the one named `garmin-babel-x.y.z.zip`. That one requires [OpenJDK](https://adoptium.net/de/) or any other Java 17 installed.
 
 ## Activities
 
@@ -115,7 +117,7 @@ Get all cycling activities longer than 75km prior to second half of 2022, prepar
 
 ## Downloading activities
 
-⚠️ There is no guarantee whatsoever that this feature keeps working. It's basically doing the same what a user would manually click the download link on Garmin Connect. I added a bit of jitter when downloading things to not hammer the service like bot would do, but use this feature of the tool on your own risk! ⚠️
+⚠️ There is no guarantee whatsoever that this feature keeps working. It's basically doing the same what a user would manually click the download link on Garmin Connect. I added a bit of jitter when downloading things to not hammer the service like bot would do, but use this feature of the tool on your own risk!
 
 While all activities are actually contained in the GDPR archive dump I didn't find any indicator which file belongs to which activity. This is sad, as I wanted to have them for my personal archive, at least some of them (Yes, I can go through the devices or the Garmin Connect page, but you know ;)).
 

@@ -59,8 +59,8 @@
 	</modules>
 
 	<properties>
-		<name-of-main-class>ac.simons.garmin.Application</name-of-main-class>
-		<artifactsDir>bundle/target</artifactsDir>
+		<appassembler-maven-plugin.version>2.1.0</appassembler-maven-plugin.version>
+		<artifactsDir>target/artifacts</artifactsDir>
 		<assertj.version>3.23.1</assertj.version>
 		<checkstyle.version>10.4</checkstyle.version>
 		<commons-csv.version>1.9.0</commons-csv.version>
@@ -83,6 +83,7 @@
 		<maven.version>3.8.4</maven.version>
 		<mockito.version>4.9.0</mockito.version>
 		<moditect-maven-plugin.version>1.0.0.RC2</moditect-maven-plugin.version>
+		<name-of-main-class>ac.simons.garmin.Application</name-of-main-class>
 		<native.maven.plugin.version>0.9.18</native.maven.plugin.version>
 		<os-maven-plugin.version>1.7.1</os-maven-plugin.version>
 		<picocli.version>4.7.0</picocli.version>
@@ -446,11 +447,47 @@
 									</artifact>
 								</artifacts>
 							</garmin-babel>
+							<garmin-babel-native>
+								<type>NATIVE_IMAGE</type>
+								<artifacts>
+									<artifact>
+										<path>{{artifactsDir}}/{{projectName}}-{{projectVersion}}-linux-x86_64-native.zip</path>
+										<platform>linux-x86_64</platform>
+									</artifact>
+									<artifact>
+										<path>{{artifactsDir}}/{{projectName}}-{{projectVersion}}-windows-x86_64-native.zip</path>
+										<platform>windows-x86_64</platform>
+									</artifact>
+									<artifact>
+										<path>{{artifactsDir}}/{{projectName}}-{{projectVersion}}-osx-x86_64-native.zip</path>
+										<platform>osx-x86_64</platform>
+									</artifact>
+								</artifacts>
+							</garmin-babel-native>
+							<garmin-babel-no-arch>
+								<type>JAVA_BINARY</type>
+								<artifacts>
+									<artifact>
+										<path>{{artifactsDir}}/{{projectName}}-{{projectVersion}}.zip</path>
+									</artifact>
+								</artifacts>
+								<java>
+									<version>17</version>
+									<mainClass>${name-of-main-class}</mainClass>
+								</java>
+							</garmin-babel-no-arch>
 						</distributions>
 					</jreleaser>
 				</configuration>
 			</plugin>
 		</plugins>
+		<extensions>
+			<extension>
+				<groupId>kr.motd.maven</groupId>
+				<artifactId>os-maven-plugin</artifactId>
+				<version>${os-maven-plugin.version}</version>
+			</extension>
+		</extensions>
 	</build>
 
 	<profiles>
