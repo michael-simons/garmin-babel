@@ -20,8 +20,8 @@ I have a limited, untested set of packages for various operating systems on the 
 They all come with batteries - aka Java - included. You can use them as follows (the example uses the Java distribution, but we also have native binaries not requiring a JVM):
 
 ```bash
-curl -LO https://github.com/michael-simons/garmin-babel/releases/download/early-access/garmin-babel-1.0.0-SNAPSHOT-osx-x86_64.zip
-unzip garmin-babel-1.0.0-SNAPSHOT-osx-x86_64.zip -d garmin-babel
+curl -LO https://github.com/michael-simons/garmin-babel/releases/download/early-access/garmin-babel-1.0.0-SNAPSHOT.zip
+unzip garmin-babel-1.0.0-SNAPSHOT.zip && mv garmin-babel-1.0.0-SNAPSHOT garmin-babel 
 ./garmin-babel/bin/garmin-babel --version 
 ```
 
@@ -36,22 +36,22 @@ The `dump-activities` command requires a username (your Garmin username), as rec
 The following will export all activities into a csv file.
 
 ```bash
-./bundle/target/maven-jlink/default/bin/garmin-babel \
+./garmin-babel/bin/garmin-babel \
    ~/tmp/Garmin_Archive \
    dump-activities -u michael.simons \
-   activities.csv
+   demo/activities.csv
 ```
 
 You can create a SQLite database with it like this:
 
 ```bash
-sqlite3 activities.sqlite \
+sqlite3 demo/activities.sqlite \
   'CREATE TABLE IF NOT EXISTS activities (
      garmin_id number, name varchar(256), started_on timestamp, activity_type varchar(32), sport_type varchar(32), distance number, elevation_gain number, avg_speed number, max_speed number, duration number, elapsed_duration, moving_duration number, v_o_2_max number, start_longitude decimal(12,8), start_latitude decimal(12,8), end_longitude decimal(12,8), end_latitude decimal(12,8), gear varchar(256),
      unique(garmin_id)
   )' \
   '.mode csv' \
-  '.import activities.csv activities' \
+  '.import demo/activities.csv activities' \
   '.q'
 ```
 
@@ -64,7 +64,7 @@ In the examples further down the line I have omitted a proper table for the impo
 The date filters are generally available, the types are only for the activities
 
 ```bash
-./bundle/target/maven-jlink/default/bin/garmin-babel \
+./garmin-babel/bin/garmin-babel \
   --start-date=2022-01-01 \
   --end-date=2022-02-01 \
   ~/tmp/Garmin_Archive \
@@ -77,7 +77,7 @@ The date filters are generally available, the types are only for the activities
 Get all runs longer than 15km prior to second half of 2022, displace speed as pace, use MySQL format
 
 ```bash
-./bundle/target/maven-jlink/default/bin/garmin-babel \
+./garmin-babel/bin/garmin-babel \
   --csv-format=MySQL \
   --speed-to-pace \
   --end-date=2022-07-01 \
@@ -85,13 +85,13 @@ Get all runs longer than 15km prior to second half of 2022, displace speed as pa
   dump-activities -u michael.simons \
   --sport-type=RUNNING \
   --min-distance 15 \
-  long-runs.csv
+  demo/long-runs.csv
 ```
 
 Get all cycling activities longer than 75km prior to second half of 2022, prepared for loading into MySQL
 
 ```bash
-./bundle/target/maven-jlink/default/bin/garmin-babel \
+./garmin-babel/bin/garmin-babel \
   --csv-format=MySQL \
   --end-date=2022-07-01 \
   ~/tmp/Garmin_Archive \
@@ -99,13 +99,13 @@ Get all cycling activities longer than 75km prior to second half of 2022, prepar
   --sport-type=CYCLING \
   --activity-type=road_biking,gravel_cycling,cycling,mountain_biking,virtual_ride,indoor_cycling \
   --min-distance 75 \
-  long-rides.csv
+  demo/long-rides.csv
 ```
 
 ### Change units
 
 ```bash
-./bundle/target/maven-jlink/default/bin/garmin-babel \
+./garmin-babel/bin/garmin-babel \
   --start-date=2022-01-01 \
   --end-date=2022-01-10 \
   --unit-distance=metre \
@@ -138,7 +138,7 @@ export GARMIN_BACKEND_TOKEN=long_gibberish_token_from_one_of_the_requests
 Then, the `--download` option can be used like this:
 
 ```bash
-./bundle/target/maven-jlink/default/bin/garmin-babel \
+./garmin-babel/bin/garmin-babel \
   --csv-format=MySQL \
   --speed-to-pace \
   --end-date=2022-07-01 \
@@ -147,7 +147,7 @@ Then, the `--download` option can be used like this:
   --sport-type=RUNNING \
   --min-distance 15 \
   --download fit \
-  long-runs.csv
+  demo/long-runs.csv
 ```
 
 ## Fun with SQLite
@@ -160,7 +160,7 @@ Here are two examples that I found useful:
 ```bash
 sqlite3 :memory: \
  '.mode csv' \
- '.import "|./bundle/target/maven-jlink/default/bin/garmin-babel ~/tmp/Garmin_Archive dump-activities --user-name=michael.simons" activities' \
+ '.import "|./garmin-babel/bin/garmin-babel ~/tmp/Garmin_Archive dump-activities --user-name=michael.simons" activities' \
  "WITH 
    runs AS (
      SELECT name, 
@@ -189,7 +189,7 @@ Note: If you have more than one item used per activity, the following want work:
 ```bash
 sqlite3 :memory: \
  '.mode csv' \
- '.import "|./bundle/target/maven-jlink/default/bin/garmin-babel ~/tmp/Garmin_Archive dump-activities --user-name=michael.simons" activities' \
+ '.import "|./garmin-babel/bin/garmin-babel ~/tmp/Garmin_Archive dump-activities --user-name=michael.simons" activities' \
  "WITH 
     cycle_activities AS (
       SELECT *
@@ -217,7 +217,7 @@ sqlite3 :memory: \
 ```bash
 sqlite3 :memory: \
  '.mode csv' \
- '.import "|./bundle/target/maven-jlink/default/bin/garmin-babel ~/tmp/Garmin_Archive dump-activities --user-name=michael.simons" activities' \
+ '.import "|./garmin-babel/bin/garmin-babel ~/tmp/Garmin_Archive dump-activities --user-name=michael.simons" activities' \
  "WITH 
     cycle_activities AS (
       SELECT cast(distance AS NUMBER) as distance
@@ -246,12 +246,12 @@ sqlite3 :memory: \
 The following will export weights prior to a given date, in kg, to a file name `weights.csv`, formatted for MySQL:
 
 ```bash
-./bundle/target/maven-jlink/default/bin/garmin-babel \
+./garmin-babel/bin/garmin-babel \
   --csv-format=mysql \
   --unit-weight=kilogram \
   --end-date=2022-07-01 \
    ~/tmp/Garmin_Archive dump-weights \
-   weights.csv
+   demo/weights.csv
 ```
 
 ### Loading
@@ -261,7 +261,7 @@ Here, I do this by a unique constraint in MySQL while loading:
 
 ```sql
 CREATE TABLE IF NOT EXISTS weights_in(measured_on date, value DECIMAL(6,3), unique(measured_on));
-LOAD DATA LOCAL INFILE 'weights.csv'
+LOAD DATA LOCAL INFILE 'demo/weights.csv'
 INTO TABLE weights_in
 IGNORE 1 LINES
 (@measured_on, value)

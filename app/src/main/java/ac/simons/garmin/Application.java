@@ -642,7 +642,12 @@ public final class Application implements Runnable {
 			if (target.isEmpty()) {
 				return new AppendableHolder(System.out, false);
 			}
-			var bufferedWriter = new BufferedWriter(new OutputStreamWriter(Files.newOutputStream(target.get())));
+			var targetFile = target.get().normalize().toAbsolutePath();
+			var parent = targetFile.getParent();
+			if (!Files.isDirectory(parent)) {
+				Files.createDirectories(parent);
+			}
+			var bufferedWriter = new BufferedWriter(new OutputStreamWriter(Files.newOutputStream(targetFile)));
 			return new AppendableHolder(bufferedWriter, true);
 		}
 
