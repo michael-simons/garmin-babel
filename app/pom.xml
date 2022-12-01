@@ -66,6 +66,7 @@
 					</compilerArgs>
 				</configuration>
 			</plugin>
+			<?SORTPOM IGNORE?>
 			<plugin>
 				<groupId>org.moditect</groupId>
 				<artifactId>moditect-maven-plugin</artifactId>
@@ -87,9 +88,12 @@
 										<artifactId>javax.inject</artifactId>
 										<version>1</version>
 									</artifact>
-									<moduleInfoSource>module javax.inject {
-										exports javax.inject;
+									<moduleInfoSource>
+										<![CDATA[
+										module javax.inject {
+											exports javax.inject;
 										}
+										]]>
 									</moduleInfoSource>
 								</module>
 								<module>
@@ -98,9 +102,12 @@
 										<artifactId>commons-csv</artifactId>
 										<version>${commons-csv.version}</version>
 									</artifact>
-									<moduleInfoSource>module commons.csv {
-										exports org.apache.commons.csv;
+									<moduleInfoSource>
+										<![CDATA[
+										module commons.csv {
+											exports org.apache.commons.csv;
 										}
+										]]>
 									</moduleInfoSource>
 								</module>
 							</modules>
@@ -108,6 +115,7 @@
 					</execution>
 				</executions>
 			</plugin>
+			<?SORTPOM RESUME?>
 			<plugin>
 				<groupId>org.jreleaser</groupId>
 				<artifactId>jreleaser-maven-plugin</artifactId>
