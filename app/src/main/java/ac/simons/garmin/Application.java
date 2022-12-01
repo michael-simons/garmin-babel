@@ -25,10 +25,16 @@ import java.io.BufferedWriter;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
+import java.io.Serial;
 import java.lang.reflect.InvocationTargetException;
 import java.math.BigDecimal;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.time.Duration;
@@ -45,9 +51,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -125,6 +134,12 @@ public final class Application implements Runnable {
 	@Option(names = {"--csv-format"}, description = "The CSV format to use; valid values are: ${COMPLETION-CANDIDATES} and the default is ${DEFAULT-VALUE}")
 	private CSVFormat.Predefined csvFormat = CSVFormat.Predefined.Default;
 
+	@Option(names = {"--backend-token:env"}, description = "The name of the variable holding the Garmin backend token, find the latter in your browser console when interacting with Garmin Connect, defaults to ${DEFAULT-VALUE}", hidden = true)
+	private String backendTokenEnv = "GARMIN_BACKEND_TOKEN";
+
+	@Option(names = {"--jwt:env"}, description = "The name of the variable holding the Garmin JWT, find the latter in your browsers cookie store after interacting with Garmin Connect, defaults to ${DEFAULT-VALUE}", hidden = true)
+	private String jwtEnv = "GARMIN_JWT";
+
 	@Parameters(index = "0", description = "Directory containing the extracted contents of the Garmin ZIP archive")
 	private Path archive;
 
@@ -134,6 +149,7 @@ public final class Application implements Runnable {
 	private final NumberFormat valueFormat;
 	private final ObjectMapper mapper;
 	private final JsonFactory jsonFactory;
+	private final HttpClient httpClient;
 
 	private Application() {
 
@@ -143,6 +159,10 @@ public final class Application implements Runnable {
 		this.mapper = new ObjectMapper();
 		mapper.enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS);
 		this.jsonFactory = mapper.getFactory();
+		this.httpClient = HttpClient.newBuilder()
+			.version(HttpClient.Version.HTTP_2)
+			.followRedirects(HttpClient.Redirect.NORMAL)
+			.build();
 	}
 
 	/**
@@ -196,14 +216,13 @@ public final class Application implements Runnable {
 		try (
 			var in = new BufferedInputStream(Files.newInputStream(userBiometrics));
 			var out = AppendableHolder.of(target);
+			var csvPrinter = new CSVPrinter(out.value, csvFormat.getFormat().builder().setHeader(getHeader(WeightMeasurement.class)).build());
 			var parser = jsonFactory.createParser(in)
 		) {
 			if (parser.nextToken() != JsonToken.START_ARRAY) {
 				throw new IllegalStateException("Expected content to be an array");
 			}
 
-			var csvPrinter = new CSVPrinter(out.value,
-				csvFormat.getFormat().builder().setHeader(getHeader(WeightMeasurement.class)).build());
 			while (parser.nextToken() != JsonToken.END_ARRAY) {
 				var source = mapper.readValue(parser, MAP_OF_OBJECTS);
 
@@ -234,6 +253,13 @@ public final class Application implements Runnable {
 		}
 	}
 
+	enum DownloadFormat {
+		NONE,
+		TCX,
+		GPX,
+		FIT
+	}
+
 	@Command(name = "dump-activities")
 	void dumpActivities(
 		@Option(names = {"-u", "--user-name"}, required = true, description = "User name inside the archive")
@@ -246,6 +272,14 @@ public final class Application implements Runnable {
 		Double minDistance,
 		@Option(names = "--min-elevation-gain", description = "Minimum elevation gain to be included, same unit as for the whole app assumed")
 		Double minElevationGain,
+		@Option(names = "--download",
+			defaultValue = "NONE",
+			description = "" +
+				"Download all matching activities in the given format; requires that both `GARMIN_BACKEND_TOKEN` and " +
+				"`GARMIN_JWT` variables are set; files will either be stored in the current directory or in parallel to " +
+				"the CSV file if the latter is specified and existing files will be overwritten; valid formats are ${COMPLETION-CANDIDATES}"
+		)
+		DownloadFormat downloadFormat,
 		@Parameters(index = "0", arity = "0..1", description = "Optional target file, will be overwritten")
 		Optional<Path> target
 	) throws IOException, IllegalAccessException, InvocationTargetException {
@@ -254,6 +288,11 @@ public final class Application implements Runnable {
 		var fitnessDir = baseDir.resolve(Path.of("DI_CONNECT/DI-Connect-Fitness"));
 		if (!Files.isDirectory(fitnessDir)) {
 			throw new IllegalStateException("'DI_CONNECT/DI-Connect-Fitness' not found.");
+		}
+
+		var tokens = Optional.<Tokens>empty();
+		if (downloadFormat != DownloadFormat.NONE) {
+			tokens = Optional.of(assertTokens());
 		}
 
 		// Select filenames
@@ -280,10 +319,9 @@ public final class Application implements Runnable {
 		final Predicate<Activity> includeByType;
 		if (includeBySportType != null && includeByActivityType != null) {
 			includeByType = includeBySportType.or(includeByActivityType);
-		} else if (includeBySportType != null) {
-			includeByType = includeBySportType;
 		} else {
-			includeByType = Objects.requireNonNullElseGet(includeByActivityType, () -> a -> true);
+			includeByType = Objects.requireNonNullElseGet(includeBySportType,
+				() -> Objects.requireNonNullElseGet(includeByActivityType, () -> a -> true));
 		}
 
 		Predicate<Activity> includeByDistance = a -> true;
@@ -303,8 +341,11 @@ public final class Application implements Runnable {
 			.and(includeByDistance)
 			.and(includeByElevationGain);
 
-		try (var out = AppendableHolder.of(target)) {
+		List<CompletableFuture<Optional<Path>>> runningDownloads = new ArrayList<>();
+		try (
+			var out = AppendableHolder.of(target);
 			var csvPrinter = new CSVPrinter(out.value, csvFormat.getFormat().builder().setHeader(getHeader(Activity.class)).build());
+		) {
 			for (var path : summarizedActivities) {
 				try (
 					var in = new BufferedInputStream(Files.newInputStream(path));
@@ -326,10 +367,77 @@ public final class Application implements Runnable {
 							continue;
 						}
 						printRecord(csvPrinter, activity);
+						if (downloadFormat != DownloadFormat.NONE) {
+							runningDownloads.add(scheduleDownload(activity, downloadFormat, tokens.get(), target));
+						}
 					}
 				}
 			}
 		}
+
+		if (!runningDownloads.isEmpty()) {
+			CompletableFuture.allOf(runningDownloads.toArray(CompletableFuture[]::new)).join();
+		}
+	}
+
+	private CompletableFuture<Optional<Path>> scheduleDownload(Activity activity, DownloadFormat format, Tokens tokens, Optional<Path> base) {
+		return CompletableFuture
+			.supplyAsync(() -> {
+				// Randomly sleep a bit
+				try {
+					Thread.sleep(ThreadLocalRandom.current().nextInt(10) * 100);
+				} catch (InterruptedException e) {
+					throw new RuntimeException(e);
+				}
+
+				var uri = switch (format) {
+					case FIT -> "https://connect.garmin.com/download-service/files/activity/%d".formatted(activity.garminId());
+					default -> "https://connect.garmin.com/download-service/export/%s/activity/%d".formatted(format.name().toLowerCase(Locale.ROOT), activity.garminId());
+				};
+
+				return HttpRequest
+					.newBuilder(URI.create(uri))
+					.header("Authorization", "Bearer %s".formatted(tokens.backend()))
+					.header("DI-Backend", "connectapi.garmin.com")
+					.header("Cookie", "JWT_FGP=%s".formatted(tokens.jwt()))
+					.header("User-Agent", "garmin-babel")
+					.GET()
+					.build();
+			}).thenCompose(request -> httpClient
+				.sendAsync(request, HttpResponse.BodyHandlers.ofInputStream())
+				.thenApply(res -> {
+					if (res.statusCode() != 200) {
+						throw new ConnectException("HTTP/2 %d for %s".formatted(res.statusCode(), request.uri()));
+					}
+					try {
+						var suffix = switch (format) {
+							case FIT -> "zip";
+							default -> format.name().toLowerCase(Locale.ROOT);
+						};
+						var filename = "%d.%s".formatted(activity.garminId(), suffix);
+						var targetFile = base.map(v -> v.resolveSibling(filename)).orElseGet(() -> Path.of(filename));
+						Files.copy(res.body(), targetFile, StandardCopyOption.REPLACE_EXISTING);
+						return Optional.of(targetFile);
+					} catch (IOException e) {
+						throw new RuntimeException(e);
+					}
+				})
+				.thenApply(path -> {
+					path.ifPresent(v -> {
+						System.err.printf("Stored data for %d (%s) as %s%n", activity.garminId(), activity.name(), v.toAbsolutePath());
+					});
+					return path;
+				}))
+			.exceptionally(e -> {
+				var prefix = "Error downloading activity %d ".formatted(activity.garminId());
+				if (e.getCause() instanceof ConnectException connectException) {
+					System.err.println(prefix + connectException.getHttpStatusAndUri());
+				} else {
+					System.err.println(prefix + e.getMessage());
+				}
+
+				return Optional.empty();
+			});
 	}
 
 	@SuppressWarnings("unchecked")
@@ -347,11 +455,10 @@ public final class Application implements Runnable {
 		}
 
 		var gearAndActivities = getGearAndActivities(fitnessDir, userName);
-
 		try (
 			var out = AppendableHolder.of(target);
-		) {
 			var csvPrinter = new CSVPrinter(out.value, csvFormat.getFormat().builder().setHeader(getHeader(Gear.class)).build());
+		) {
 			gearAndActivities.gear().entrySet().stream().map(e -> new Gear(e.getKey(), e.getValue())).forEach(item -> {
 				try {
 					printRecord(csvPrinter, item);
@@ -390,7 +497,6 @@ public final class Application implements Runnable {
 					return new GearAndActivities(gear, Collections.unmodifiableMap(activityMapping));
 				}
 			}
-
 		}
 
 		return new GearAndActivities(Map.of(), Map.of());
@@ -414,7 +520,8 @@ public final class Application implements Runnable {
 		return Arrays.stream(components).map(c -> toSnakeCase(c.getName())).toArray(String[]::new);
 	}
 
-	private <T extends Record> void printRecord(CSVPrinter printer, T record) throws InvocationTargetException, IllegalAccessException, IOException {
+	private <T extends Record> void printRecord(CSVPrinter printer, T record) throws
+		InvocationTargetException, IllegalAccessException, IOException {
 		var components = record.getClass().getRecordComponents();
 		for (var component : components) {
 			var value = component.getAccessor().invoke(record);
@@ -449,7 +556,7 @@ public final class Application implements Runnable {
 		printer.println();
 	}
 
-	Long formatDuration(Duration duration) {
+	private Long formatDuration(Duration duration) {
 		return switch (unitDuration) {
 			case SECONDS -> duration.toSeconds();
 			case MINUTES -> duration.toMinutes();
@@ -464,6 +571,32 @@ public final class Application implements Runnable {
 			throw new IllegalArgumentException(String.format("'%s' is not a valid directory.", this.archive));
 		}
 		return this.archive;
+	}
+
+	/**
+	 * Stuff to satisfy Garmin's api
+	 *
+	 * @param jwt     Actual frontend token
+	 * @param backend Garmin's backend
+	 */
+	record Tokens(String jwt, String backend) {
+	}
+
+	/**
+	 * @return Valid tokens
+	 * @throws NoSuchElementException if any token is missing
+	 */
+	private Tokens assertTokens() {
+		var jwt = Optional.ofNullable(System.getenv(this.jwtEnv));
+		var backend = Optional.ofNullable(System.getenv(this.backendTokenEnv));
+
+		return new Tokens(
+			jwt.map(String::trim).filter(Predicate.not(String::isBlank)).orElseThrow(() -> new NoSuchElementException("JWT not present in " + this.jwtEnv)),
+			backend.map(String::trim)
+				.filter(Predicate.not(String::isBlank))
+				.map(v -> v.replaceAll("(?i)Authorization: +Bearer +", ""))
+				.orElseThrow(() -> new NoSuchElementException("Backend token not present in " + this.backendTokenEnv))
+		);
 	}
 
 	private static String toSnakeCase(String name) {
@@ -528,6 +661,22 @@ public final class Application implements Runnable {
 			if (this.value instanceof Closeable closeable) {
 				closeable.close();
 			}
+		}
+	}
+
+	private static class ConnectException extends RuntimeException {
+		@Serial
+		private static final long serialVersionUID = 2604173415704485052L;
+
+		private final String httpStatusAndUri;
+
+		ConnectException(String httpStatusAndUri) {
+			super(httpStatusAndUri);
+			this.httpStatusAndUri = httpStatusAndUri;
+		}
+
+		public String getHttpStatusAndUri() {
+			return httpStatusAndUri;
 		}
 	}
 }

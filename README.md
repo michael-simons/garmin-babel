@@ -3,8 +3,8 @@
 A Java program to massage Garmin data exported via [Garmin GDPR management](https://www.garmin.com/de-DE/account/datamanagement)
 into usable CSV files for further processing.
 
-*NOTE* This program is not in any way, shape or form associated, supported or sponsored by Garmin. 
-It's a personal project suiting my needs. It may or may not be helpful to other people.
+⚠️ This program is not in any way, shape or form associated, supported or sponsored by Garmin. 
+It's a personal project suiting my needs. It may or may not be helpful to other people. ⚠️
 
 ## Building the tool
 
@@ -111,6 +111,41 @@ Get all cycling activities longer than 75km prior to second half of 2022, prepar
   ~/tmp/Garmin_Archive \
   dump-activities -u michael.simons \
   --sport-type=RUNNING
+```
+
+## Downloading activities
+
+⚠️ There is no guarantee whatsoever that this feature keeps working. It's basically doing the same what a user would manually click the download link on Garmin Connect. I added a bit of jitter when downloading things to not hammer the service like bot would do, but use this feature of the tool on your own risk! ⚠️
+
+While all activities are actually contained in the GDPR archive dump I didn't find any indicator which file belongs to which activity. This is sad, as I wanted to have them for my personal archive, at least some of them (Yes, I can go through the devices or the Garmin Connect page, but you know ;)).
+
+Do download things you have to log in to [Garmin Connect](https://connect.garmin.com). Once done, open your Browsers developer tools and find the cookie jar. Find a cookie named `JWT_FGP` and copy its value.
+
+Export it in your shell like this:
+
+```bash
+export GARMIN_JWT=jwt_token_from_your_cookie_store_for_garmin
+```
+
+Then in the _network_ tab of your Browsers developer tools (name might be different), clear all requests (or leave them, if you really want to search to the ton of requests the UI does). Then go to [activities](https://connect.garmin.com/modern/activities) for example and look in the requests tab for a request to `activities`. Look for something that says `HEADER` and in those headers look for `Authorization: Bearer ` and copy that (very long) very long header and export it, too.
+
+```bash
+export GARMIN_BACKEND_TOKEN=long_gibberish_token_from_one_of_the_requests
+```
+
+Then, the `--download` option can be used like this:
+
+```bash
+./bundle/target/maven-jlink/default/bin/garmin-babel \
+  --csv-format=MySQL \
+  --speed-to-pace \
+  --end-date=2022-07-01 \
+  ~/tmp/Garmin_Archive \
+  dump-activities -u michael.simons \
+  --sport-type=RUNNING \
+  --min-distance 15 \
+  --download fit \
+  long-runs.csv
 ```
 
 ## Fun with SQLite

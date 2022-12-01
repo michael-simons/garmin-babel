@@ -22,6 +22,7 @@ module garmin.babel {
 	requires com.fasterxml.jackson.databind;
 	requires info.picocli;
 	requires java.measure;
+	requires java.net.http;
 	requires tech.units.indriya;
 	requires commons.csv;
 
