@@ -1,0 +1,14 @@
+[
+  {
+    "name":"ac.simons.garmin.Activity",
+    "allPublicMethods" : true
+  },
+  {
+    "name":"ac.simons.garmin.Gear",
+    "allPublicMethods" : true
+  },
+  {
+    "name":"ac.simons.garmin.WeightMeasurement",
+    "allPublicMethods" : true
+  }
+]

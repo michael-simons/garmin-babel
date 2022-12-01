@@ -59,14 +59,18 @@
 	</modules>
 
 	<properties>
+		<name-of-main-class>ac.simons.garmin.Application</name-of-main-class>
 		<artifactsDir>bundle/target</artifactsDir>
 		<assertj.version>3.23.1</assertj.version>
 		<checkstyle.version>10.4</checkstyle.version>
+		<commons-csv.version>1.9.0</commons-csv.version>
 		<indriya.version>2.1.3</indriya.version>
 		<jackson.version>2.14.0</jackson.version>
+		<java.version>17</java.version>
 		<jreleaser-maven-plugin.version>1.3.1</jreleaser-maven-plugin.version>
 		<junit-jupiter.version>5.9.1</junit-jupiter.version>
 		<license-maven-plugin.version>4.2.rc2</license-maven-plugin.version>
+		<maven-assembly-plugin.version>3.4.2</maven-assembly-plugin.version>
 		<maven-checkstyle-plugin.version>3.2.0</maven-checkstyle-plugin.version>
 		<maven-compiler-plugin.version>3.10.1</maven-compiler-plugin.version>
 		<maven-dependency-plugin.version>3.3.0</maven-dependency-plugin.version>
@@ -75,10 +79,11 @@
 		<maven-jlink-plugin.version>3.1.0</maven-jlink-plugin.version>
 		<maven-surefire-plugin.version>3.0.0-M7</maven-surefire-plugin.version>
 		<maven.compiler.parameters>true</maven.compiler.parameters>
-		<maven.compiler.release>17</maven.compiler.release>
+		<maven.compiler.release>${java.version}</maven.compiler.release>
 		<maven.version>3.8.4</maven.version>
 		<mockito.version>4.9.0</mockito.version>
 		<moditect-maven-plugin.version>1.0.0.RC2</moditect-maven-plugin.version>
+		<native.maven.plugin.version>0.9.18</native.maven.plugin.version>
 		<os-maven-plugin.version>1.7.1</os-maven-plugin.version>
 		<picocli.version>4.7.0</picocli.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -217,6 +222,11 @@
 					<artifactId>jreleaser-maven-plugin</artifactId>
 					<version>${jreleaser-maven-plugin.version}</version>
 				</plugin>
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-assembly-plugin</artifactId>
+					<version>${maven-assembly-plugin.version}</version>
+				</plugin>
 			</plugins>
 		</pluginManagement>
 
@@ -246,6 +256,7 @@
 						<exclude>**/*.extension</exclude>
 						<exclude>**/org.mockito.plugins.MockMaker</exclude>
 						<exclude>**/package-info.java</exclude>
+						<exclude>**/assembly/README</exclude>
 					</excludes>
 					<dependencyEnforce>true</dependencyEnforce>
 					<dependencyExceptionMessage>One or more dependencies are licensed under a non-approved license.</dependencyExceptionMessage>
@@ -375,9 +386,10 @@
 				<configuration>
 					<forceJavacCompilerUse>true</forceJavacCompilerUse>
 					<showWarnings>true</showWarnings>
+					<release>${java.version}</release>
 					<compilerArgs>
 						<arg>-parameters</arg>
-						<arg>-Xlint:all,-options,-path,-processing</arg>
+						<arg>-Xlint:allx,-options,-path,-processing</arg>
 						<arg>-Werror</arg>
 					</compilerArgs>
 				</configuration>

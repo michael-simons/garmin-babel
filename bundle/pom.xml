@@ -48,7 +48,7 @@
 				<extensions>true</extensions>
 				<configuration>
 					<finalName>${project.parent.artifactId}-${project.version}-${os.detected.classifier}</finalName>
-					<launcher>garmin-babel=garmin.babel/ac.simons.garmin.Application</launcher>
+					<launcher>garmin-babel=garmin.babel/${name-of-main-class}</launcher>
 					<modulePaths>
 						<modulePath>${project.basedir}/../app/target/modules</modulePath>
 					</modulePaths>

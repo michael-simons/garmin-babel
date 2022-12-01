@@ -1,0 +1,7 @@
+This is a native binary of [garmin-babel][1].
+
+Use
+
+    ./bin/garmin-babel -h
+
+[1]: https://github.com/michael-simons/garmin-babel

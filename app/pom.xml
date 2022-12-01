@@ -16,7 +16,8 @@
     limitations under the License.
 
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+		 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<parent>
 		<groupId>eu.michael-simons</groupId>
@@ -26,7 +27,7 @@
 
 	<artifactId>garmin-babel.app</artifactId>
 	<properties>
-		<commons-csv.version>1.9.0</commons-csv.version>
+		<executable-suffix/>
 	</properties>
 
 	<dependencies>
@@ -52,6 +53,21 @@
 	<build>
 		<plugins>
 			<plugin>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<configuration combine.self="append">
+					<annotationProcessorPaths>
+						<path>
+							<groupId>info.picocli</groupId>
+							<artifactId>picocli-codegen</artifactId>
+							<version>${picocli.version}</version>
+						</path>
+					</annotationProcessorPaths>
+					<compilerArgs>
+						<arg>-Aproject=${project.groupId}/${project.artifactId}</arg>
+					</compilerArgs>
+				</configuration>
+			</plugin>
+			<plugin>
 				<groupId>org.moditect</groupId>
 				<artifactId>moditect-maven-plugin</artifactId>
 				<version>${moditect-maven-plugin.version}</version>
@@ -73,8 +89,9 @@
 										<version>1</version>
 									</artifact>
 									<moduleInfoSource>module javax.inject {
-											exports javax.inject;
-										}</moduleInfoSource>
+										exports javax.inject;
+										}
+									</moduleInfoSource>
 								</module>
 								<module>
 									<artifact>
@@ -83,8 +100,9 @@
 										<version>${commons-csv.version}</version>
 									</artifact>
 									<moduleInfoSource>module commons.csv {
-											exports org.apache.commons.csv;
-										}</moduleInfoSource>
+										exports org.apache.commons.csv;
+										}
+									</moduleInfoSource>
 								</module>
 							</modules>
 						</configuration>
@@ -113,4 +131,73 @@
 			</plugin>
 		</plugins>
 	</build>
+
+	<profiles>
+		<profile>
+			<id>windows</id>
+			<activation>
+				<os>
+					<family>windows</family>
+				</os>
+			</activation>
+			<properties>
+				<executable-suffix>.exe</executable-suffix>
+			</properties>
+		</profile>
+		<profile>
+			<id>native</id>
+			<activation>
+				<property>
+					<name>native</name>
+				</property>
+			</activation>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.graalvm.buildtools</groupId>
+						<artifactId>native-maven-plugin</artifactId>
+						<version>${native.maven.plugin.version}</version>
+						<extensions>true</extensions>
+						<configuration>
+							<requiredVersion>22.3</requiredVersion>
+							<mainClass>${name-of-main-class}</mainClass>
+							<imageName>garmin-babel</imageName>
+							<buildArgs>
+								<arg>--no-fallback</arg>
+							</buildArgs>
+						</configuration>
+						<executions>
+							<execution>
+								<id>create-native-image</id>
+								<goals>
+									<goal>compile-no-fork</goal>
+								</goals>
+								<phase>package</phase>
+							</execution>
+						</executions>
+					</plugin>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-assembly-plugin</artifactId>
+						<executions>
+							<execution>
+								<id>assembly-native</id>
+								<goals>
+									<goal>single</goal>
+								</goals>
+								<phase>package</phase>
+								<configuration>
+									<finalName>garmin-babel-${project.version}-${os.detected.classifier}</finalName>
+									<attach>false</attach>
+									<descriptors>
+										<descriptor>src/main/assembly/assembly-native.xml</descriptor>
+									</descriptors>
+								</configuration>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
 </project>
