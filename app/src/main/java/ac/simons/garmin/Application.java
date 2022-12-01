@@ -403,29 +403,29 @@ public final class Application implements Runnable {
 					.header("User-Agent", "garmin-babel")
 					.GET()
 					.build();
-			}).thenCompose(request -> httpClient
-				.sendAsync(request, HttpResponse.BodyHandlers.ofInputStream())
-				.thenApply(res -> {
-					if (res.statusCode() != 200) {
-						throw new ConnectException("HTTP/2 %d for %s".formatted(res.statusCode(), request.uri()));
-					}
-					try {
-						var suffix = switch (format) {
-							case FIT -> "zip";
-							default -> format.name().toLowerCase(Locale.ROOT);
-						};
-						var filename = "%d.%s".formatted(activity.garminId(), suffix);
-						var targetFile = base.map(v -> v.resolveSibling(filename)).orElseGet(() -> Path.of(filename));
-						Files.copy(res.body(), targetFile, StandardCopyOption.REPLACE_EXISTING);
-						return Optional.of(targetFile);
-					} catch (IOException e) {
-						throw new RuntimeException(e);
-					}
-				})
-				.thenApply(path -> {
-					path.ifPresent(v -> System.err.printf("Stored data for %d %s as %s%n", activity.garminId(), activity.name() == null ? "" : "(" + activity.name() + ")", v.toAbsolutePath()));
-					return path;
-				}))
+			})
+			.thenCompose(request -> httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofInputStream()))
+			.thenApply(res -> {
+				if (res.statusCode() != 200) {
+					throw new ConnectException("HTTP/2 %d for %s".formatted(res.statusCode(), res.uri()));
+				}
+				try {
+					var suffix = switch (format) {
+						case FIT -> "zip";
+						default -> format.name().toLowerCase(Locale.ROOT);
+					};
+					var filename = "%d.%s".formatted(activity.garminId(), suffix);
+					var targetFile = base.map(v -> v.resolveSibling(filename)).orElseGet(() -> Path.of(filename));
+					Files.copy(res.body(), targetFile, StandardCopyOption.REPLACE_EXISTING);
+					return Optional.of(targetFile);
+				} catch (IOException e) {
+					throw new RuntimeException(e);
+				}
+			})
+			.thenApply(path -> {
+				path.ifPresent(v -> System.err.printf("Stored data for %d %s as %s%n", activity.garminId(), activity.name() == null ? "" : "(" + activity.name() + ")", v.toAbsolutePath()));
+				return path;
+			})
 			.exceptionally(e -> {
 				var prefix = "Error downloading activity %d ".formatted(activity.garminId());
 				if (e.getCause() instanceof ConnectException connectException) {
