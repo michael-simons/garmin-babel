@@ -32,12 +32,6 @@
 			<groupId>eu.michael-simons</groupId>
 			<artifactId>garmin-babel.app</artifactId>
 			<version>${project.version}</version>
-			<exclusions>
-				<exclusion>
-					<groupId>javax.inject</groupId>
-					<artifactId>javax.inject</artifactId>
-				</exclusion>
-			</exclusions>
 		</dependency>
 	</dependencies>
 
