@@ -13,7 +13,7 @@ For copy&pasting the examples further down, you need to either build this tool y
 ### Pre-build artifacts
 
 I have a limited, untested set of packages for various operating systems on the [release page](https://github.com/michael-simons/garmin-babel/releases).
-They came as plain Java distribution requiring a locally installed JDK, with batteries included (that is, with a JDK for a specific operating system and architecture) or as a native distribution not requiring a JDK at all. You can use them as follows (the example is based on the plain Java distribution):
+They come either as plain Java distribution requiring a locally installed JDK, with batteries included (that is, with a JDK for a specific operating system and architecture) or as a native distribution not requiring a JDK at all. You can use them as follows (the example is based on the plain Java distribution):
 
 ```bash
 mkdir -p target
