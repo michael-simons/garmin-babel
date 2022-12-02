@@ -8,7 +8,7 @@ It's a personal project suiting my needs. It may or may not be helpful to other 
 
 ## Installation
 
-For copy&pasting the examples further down, you need to either build this tool yourself or pick one of the pre-build artifacts fitting your operating system and architecture. Both variants here are OS and architecture independent and need only a valid Java 17 installation.
+For copy&pasting the examples further down, you need to either build this tool yourself or pick one of the pre-build artifacts fitting your operating system and architecture.
 
 ### Pre-build artifacts
 
