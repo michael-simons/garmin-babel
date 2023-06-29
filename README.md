@@ -227,7 +227,7 @@ duckdb -s "
 "
 ```
 
-#### Working with spatial data
+##### Working with spatial data
 
 Spatial you say? DuckDb has you covered: [PostGEESE? Introducing The DuckDB Spatial Extension](https://duckdb.org/2023/04/28/spatial.html).
 
