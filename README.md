@@ -61,21 +61,6 @@ The following will export all activities into a csv file.
    target/demo/activities.csv
 ```
 
-You can create a SQLite database with it like this:
-
-```bash
-sqlite3 target/demo/activities.sqlite \
-  'CREATE TABLE IF NOT EXISTS activities (
-     garmin_id number, name varchar(256), started_on timestamp, activity_type varchar(32), sport_type varchar(32), distance number, elevation_gain number, avg_speed number, max_speed number, duration number, elapsed_duration, moving_duration number, v_o_2_max number, start_longitude decimal(12,8), start_latitude decimal(12,8), end_longitude decimal(12,8), end_latitude decimal(12,8), gear varchar(256),
-     unique(garmin_id)
-  )' \
-  '.mode csv' \
-  '.import target/demo/activities.csv activities' \
-  '.q'
-```
-
-In the examples further down the line I have omitted a proper table for the imports and just worked in memory, accepting that I need to cast the types manually.
-
 #### Filtering
 
 ##### Filter by date and type
@@ -161,36 +146,31 @@ Then, the `--download` option can be used like this:
   target/demo/long-runs.csv
 ```
 
-#### Fun with SQLite
+#### Fun with SQL
 
-For aggregating I recommend importing the CSV data into a proper database. SQLite is a pretty good choice for ad-hoc queries on CSV.
+For aggregating I recommend importing the CSV data into a proper database.
+[DuckDB](https://duckdb.org) is a pretty good choice for online analytics, even in memory.
 Here are two examples that I found useful:
 
 ##### Getting the 10 fastest long runs
 
 ```bash
-sqlite3 :memory: \
- '.mode csv' \
- '.import "|./target/garmin-babel/bin/garmin-babel ~/tmp/Garmin_Archive dump-activities --user-name=michael.simons" activities' \
- "WITH 
+./target/garmin-babel/bin/garmin-babel ~/tmp/Garmin_Archive dump-activities --user-name=michael.simons |
+duckdb -s "
+  WITH
    runs AS (
-     SELECT name, 
-            3600.0/cast(avg_speed as number) AS pace, 
-            cast(distance AS number) AS distance
-     FROM activities
+     SELECT name, 3600.0/avg_speed AS pace, distance
+     FROM read_csv_auto('/dev/stdin')
      WHERE sport_type = 'RUNNING'
-       AND cast(distance AS number) > 20
+       AND distance > 20
    ),
    paced_runs AS (
-     SELECT name, distance, cast(pace/60 AS int) || ':' || cast(pace%60 AS int) AS pace FROM runs
-   ),
-   ranked_runs AS (
-     SELECT name, distance, pace, dense_rank() OVER (ORDER BY pace ASC) AS rnk
-     FROM paced_runs
-     GROUP BY name, distance
+     SELECT name, distance, cast(floor(pace/60) AS int) || ':' || cast(floor(pace%60) AS int) AS pace FROM runs
    )
-SELECT rnk, name, distance, pace
-FROM ranked_runs WHERE rnk <= 10"
+  SELECT dense_rank() OVER (ORDER BY pace ASC) AS rnk, name, distance, pace
+  FROM paced_runs
+  QUALIFY rnk <= 10
+"
 ```
 
 ##### What gear did I use the most
@@ -198,41 +178,37 @@ FROM ranked_runs WHERE rnk <= 10"
 Note: If you have more than one item used per activity, the following want work:
 
 ```bash
-sqlite3 :memory: \
- '.mode csv' \
- '.import "|./target/garmin-babel/bin/garmin-babel ~/tmp/Garmin_Archive dump-activities --user-name=michael.simons" activities' \
- "WITH 
+./target/garmin-babel/bin/garmin-babel ~/tmp/Garmin_Archive dump-activities --user-name=michael.simons |
+duckdb -s " 
+  WITH
     cycle_activities AS (
       SELECT *
-      FROM activities
+      FROM read_csv_auto('/dev/stdin')
       WHERE (sport_type = 'CYCLING' OR activity_type in ('road_biking', 'gravel_cycling', 'cycling', 'mountain_biking', 'virtual_ride', 'indoor_cycling'))
         AND gear IS NOT NULL AND gear <> ''
     ),
-    durations AS (
-      SELECT sum(cast(moving_duration AS NUMBER)) AS total_duration, gear
-      FROM cycle_activities
-      GROUP by gear
-    ),
-    distances AS (
-      SELECT sum(cast(distance AS NUMBER)) AS total_distance, gear
+    totals AS (
+      SELECT sum(moving_duration) AS duration, sum(distance) AS distance, gear
       FROM cycle_activities
       GROUP by gear
     )
-  SELECT durations.gear, distances.total_distance, (total_duration/3600) || ':' || (total_duration%3600/60) || ':' || (total_duration%3600%60) 
-  FROM durations JOIN distances ON distances.gear = durations.gear
-  ORDER BY total_duration DESC"
+  SELECT gear,
+         cast(floor(distance) AS integer) AS distance,
+         cast(floor(duration/3600) AS integer) || ':' || cast(floor(duration%3600/60) AS integer) || ':' || cast(floor(duration%3600%60) as integer) AS duration
+  FROM totals
+  ORDER BY totals.duration DESC
+"
 ```
 
 ##### Distribution of mileages
 
 ```bash
-sqlite3 :memory: \
- '.mode csv' \
- '.import "|./target/garmin-babel/bin/garmin-babel ~/tmp/Garmin_Archive dump-activities --user-name=michael.simons" activities' \
- "WITH 
+./target/garmin-babel/bin/garmin-babel ~/tmp/Garmin_Archive dump-activities --user-name=michael.simons |
+duckdb -s "
+  WITH 
     cycle_activities AS (
-      SELECT cast(distance AS NUMBER) as distance
-      FROM activities
+      SELECT distance
+      FROM read_csv_auto('/dev/stdin')
       WHERE (sport_type = 'CYCLING' OR activity_type in ('road_biking', 'gravel_cycling', 'cycling', 'mountain_biking', 'virtual_ride', 'indoor_cycling'))
         AND gear IS NOT NULL AND gear <> ''
     ),
@@ -245,10 +221,118 @@ sqlite3 :memory: \
         ELSE '5. Between 0 and 75' END AS value
       FROM cycle_activities
     )
-  SELECT substr(value, 4) || ': ' || count(*) || ' times' FROM distances
+  SELECT substr(value, 4) || ': ' || count(*) || ' times' AS times FROM distances
   GROUP BY value
-  ORDER BY value ASC"
+  ORDER BY value ASC
+"
 ```
+
+#### Working with spatial data
+
+Spatial you say? DuckDb has you covered: [PostGEESE? Introducing The DuckDB Spatial Extension](https://duckdb.org/2023/04/28/spatial.html).
+
+Let's create a proper database first, with an actual table holding the activities:
+
+```bash
+./target/garmin-babel/bin/garmin-babel ~/tmp/Garmin_Archive dump-activities --user-name=michael.simons |
+duckdb -s "
+  INSTALL spatial;
+  LOAD spatial;
+  CREATE TABLE IF NOT EXISTS activities (
+     garmin_id BIGINT, name VARCHAR(256), started_on TIMESTAMP, activity_type VARCHAR(32), sport_type VARCHAR(32), distance NUMERIC, elevation_gain NUMERIC, avg_speed NUMERIC, max_speed NUMERIC, duration NUMERIC, elapsed_duration NUMERIC, moving_duration NUMERIC, v_o_2_max NUMERIC, start_longitude DECIMAL(12,8), start_latitude DECIMAL(12,8), end_longitude DECIMAL(12,8), end_latitude DECIMAL(12,8), gear VARCHAR(256),
+     PRIMARY KEY(garmin_id)
+  );
+  INSERT INTO activities SELECT * FROM read_csv_auto('/dev/stdin');
+  ALTER table activities ADD COLUMN track GEOMETRY;
+" target/activities.db
+```
+
+Now download some data (follow the instructions for downloading above):
+
+```bash
+./target/garmin-babel/bin/garmin-babel ~/tmp/Garmin_Archive dump-activities --user-name=michael.simons \
+  --sport-type=CYCLING \
+  --activity-type=road_biking,gravel_cycling,cycling,mountain_biking,virtual_ride,indoor_cycling \
+  --min-distance 75 \
+  --download=gpx \
+  target/activities/long-rides.csv
+./target/garmin-babel/bin/garmin-babel ~/tmp/Garmin_Archive dump-activities --user-name=michael.simons \
+  --sport-type=RUNNING \
+  --min-distance=15 \
+  --download=gpx \
+  target/activities/long-runs.csv
+```
+
+As the downloads are not one big shape file containing all tracks as features, we must query all GPX files manually.
+Let's create a SQL script todo this, ofc with DuckDB CLI:
+
+```bash
+duckdb --noheader -list -s "
+SELECT 'UPDATE activities ' ||
+       'SET track = (' ||
+       'SELECT ST_FlipCoordinates(ST_GeomFromWKB(wkb_geometry)) FROM st_read(''target/activities/' || garmin_id  || '.gpx'', layer=''tracks'')' ||
+       ') WHERE garmin_id = '|| garmin_id || ';'
+FROM activities
+WHERE (sport_type = 'RUNNING' AND distance >= 15)
+  OR (sport_type = 'CYCLING' AND distance >= 75 AND activity_type IN ('road_biking','gravel_cycling','cycling','mountain_biking','virtual_ride','indoor_cycling'));
+" target/activities.db > target/load_tracks.sql
+duckdb -s "INSTALL spatial; LOAD spatial;" -s ".read target/load_tracks.sql" target/activities.db
+```
+
+*NOTE* For whatever reason the coordinates will be in long/lat when I read from the GPX file without applying `ST_FlipCoordinates`. 
+
+Now let's answer the question, through which German communities did I ran and ride the most?
+Germany offers a lot of spatial data for free, for example the [Verwaltungsgebiete](https://gdz.bkg.bund.de/index.php/default/digitale-geodaten/verwaltungsgebiete.html).
+Let's grab them:
+
+```bash
+rm -rf target/verwaltungsgebiete && mkdir -p target/verwaltungsgebiete && \
+curl https://daten.gdz.bkg.bund.de/produkte/vg/vg250_ebenen_0101/aktuell/vg250_01-01.utm32s.shape.ebenen.zip | \
+bsdtar xvf - --strip-components=1 -C target/verwaltungsgebiete
+```
+I picked the 1:250000 in the UTM32s (EPSG:25832) reference system (see [Georeferenzierungen](https://gdz.bkg.bund.de/index.php/default/georeferenzierungen/)) which is close enough to WGS84.
+The following query demonstrates the spatial extension of DuckDB by transforming UTM32s into WGS-84 and then computing a join based on the intersection of two geometries:
+
+```bash
+duckdb -s ".mode markdown" -s "
+  LOAD spatial;
+  WITH gemeinden AS (
+    SELECT gen AS gemeinde,         
+           ST_transform(ST_GeomFromWKB(wkb_geometry), 'EPSG:25832', 'EPSG:4326') geom
+    FROM st_read('./target/verwaltungsgebiete/vg250_ebenen_0101/VG250_GEM.shp')
+  ),
+  intersections AS (
+    SELECT gemeinde, 
+           round(sum(St_length(ST_transform(St_Intersection(track, geom), 'EPSG:4326', 'EPSG:25832'))) / 1000) as km
+    FROM activities JOIN gemeinden g ON St_Intersects(track, geom)
+    WHERE track IS NOT NULL
+    GROUP BY gemeinde
+  )
+  SELECT dense_rank() OVER (ORDER BY km DESC) as rnk, 
+         gemeinde, 
+         km
+  FROM intersections
+  QUALIFY rnk <= 10
+  ORDER BY rnk, gemeinde;
+" target/activities.db
+```
+
+This is probably dated soon, but I like the result very much: My top 10 communities by kilometers ran or cycled in them:
+
+| rnk |     gemeinde     |   km   |
+|-----|------------------|--------|
+| 1   | Aachen           | 2800.0 |
+| 2   | Stolberg (Rhld.) | 1093.0 |
+| 3   | Simmerath        | 803.0  |
+| 4   | Jülich           | 349.0  |
+| 5   | Hürtgenwald      | 314.0  |
+| 6   | Eschweiler       | 278.0  |
+| 7   | Würselen         | 237.0  |
+| 8   | Düren            | 224.0  |
+| 9   | Monschau         | 211.0  |
+| 10  | Aldenhoven       | 193.0  |
+
+You might ask why transforming back to _ETRS89 / UTM zone 32N_ by `ST_transform(St_Intersection(track, geom), 'EPSG:4326', 'EPSG:25832')` before calling `St_length`? Because the latter computes the length in units of the reference system and WGS-84 doesn't use meters. 
 
 ### Gear
 
