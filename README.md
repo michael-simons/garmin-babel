@@ -332,7 +332,33 @@ This is probably dated soon, but I like the result very much: My top 10 communit
 | 9   | Monschau         | 211.0  |
 | 10  | Aldenhoven       | 193.0  |
 
-You might ask why transforming back to _ETRS89 / UTM zone 32N_ by `ST_transform(St_Intersection(track, geom), 'EPSG:4326', 'EPSG:25832')` before calling `St_length`? Because the latter computes the length in units of the reference system and WGS-84 doesn't use meters. 
+You might ask why transforming back to _ETRS89 / UTM zone 32N_ by `ST_transform(St_Intersection(track, geom), 'EPSG:4326', 'EPSG:25832')` before calling `St_length`? Because the latter computes the length in units of the reference system and WGS-84 doesn't use meters.
+
+You can also export spatial data, creating new feature files.
+Here I use the GeoJSON driver:
+
+```sql
+COPY(
+    WITH gemeinden AS (
+        SELECT gen AS gemeinde,
+               ST_transform(ST_GeomFromWKB(wkb_geometry), 'EPSG:25832', 'EPSG:4326') geom
+        FROM st_read('./target/verwaltungsgebiete/vg250_ebenen_0101/VG250_GEM.shp')
+        WHERE gemeinde = 'Aachen'
+      )
+    SELECT St_AsWKB(St_FlipCoordinates(St_Intersection(track, geom))),
+           strftime(started_on, '%x') AS done_on,
+           sport_type,
+           distance::double AS distance
+    FROM activities JOIN gemeinden g ON St_Intersects(track, geom)
+    WHERE track IS NOT NULL
+)
+TO 'docs/example/rides_and_runs_in_aachen.geojson'
+ WITH (FORMAT GDAL, DRIVER 'GeoJSON');
+```
+
+The result can be viewed on [GeoJSON.io](http://geojson.io/#id=github:michael-simons/garmin-babel/blob/main/docs/example/rides_and_runs_in_aachen.geojson&map=10.88/50.7477/6.0948):
+
+![image](docs/example/rides_and_runs_in_aachen.jpg)
 
 ### Gear
 
