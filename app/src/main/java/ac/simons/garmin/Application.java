@@ -114,19 +114,19 @@ public final class Application implements Runnable {
 	private LocalDate endDate = null;
 
 	@Option(names = {"--unit-distance"}, description = "The unit to use when writing distances; valid values are: ${COMPLETION-CANDIDATES} and the default is ${DEFAULT-VALUE}")
-	private NamedUnit unitDistance = NamedUnit.KILOMETRE;
+	private NamedUnits.Distance unitDistance = NamedUnits.Distance.KILOMETRE;
 
 	@Option(names = {"--unit-speed"}, description = "The unit to use when writing speed; valid values are: ${COMPLETION-CANDIDATES} and the default is ${DEFAULT-VALUE}")
-	private NamedUnit unitSpeed = NamedUnit.KPH;
+	private NamedUnits.Speed unitSpeed = NamedUnits.Speed.KPH;
 
 	@Option(names = {"--speed-to-pace"}, description = "Output pace instead of speed, defaults to ${DEFAULT-VALUE}")
 	private boolean speedToPace = false;
 
 	@Option(names = {"--unit-elevation-gain"}, description = "The unit to use when writing elevation; valid values are: ${COMPLETION-CANDIDATES} and the default is ${DEFAULT-VALUE}")
-	private NamedUnit unitElevationGain = NamedUnit.METRE;
+	private NamedUnits.Distance unitElevationGain = NamedUnits.Distance.METRE;
 
 	@Option(names = {"--unit-weight"}, description = "The unit to use when writing weights; valid values are: ${COMPLETION-CANDIDATES} and the default is ${DEFAULT-VALUE}")
-	private NamedUnit unitWeight = NamedUnit.GRAM;
+	private NamedUnits.Weight unitWeight = NamedUnits.Weight.GRAM;
 
 	@Option(names = {"--unit-duration"}, description = "The unit to use when writing durations; valid values are: ${COMPLETION-CANDIDATES} and the default is ${DEFAULT-VALUE}")
 	private ChronoUnit unitDuration = ChronoUnit.SECONDS;
@@ -274,8 +274,7 @@ public final class Application implements Runnable {
 		Double minElevationGain,
 		@Option(names = "--download",
 			defaultValue = "NONE",
-			description = "" +
-				"Download all matching activities in the given format; requires that both `GARMIN_BACKEND_TOKEN` and " +
+			description = "Download all matching activities in the given format; requires that both `GARMIN_BACKEND_TOKEN` and " +
 				"`GARMIN_JWT` variables are set; files will either be stored in the current directory or in parallel to " +
 				"the CSV file if the latter is specified and existing files will be overwritten; valid formats are ${COMPLETION-CANDIDATES}"
 		)
@@ -344,7 +343,7 @@ public final class Application implements Runnable {
 		List<CompletableFuture<Optional<Path>>> runningDownloads = new ArrayList<>();
 		try (
 			var out = AppendableHolder.of(target);
-			var csvPrinter = new CSVPrinter(out.value, csvFormat.getFormat().builder().setHeader(getHeader(Activity.class)).build());
+			var csvPrinter = new CSVPrinter(out.value, csvFormat.getFormat().builder().setHeader(getHeader(Activity.class)).build())
 		) {
 			for (var path : summarizedActivities) {
 				try (
@@ -438,7 +437,6 @@ public final class Application implements Runnable {
 			});
 	}
 
-	@SuppressWarnings("unchecked")
 	@Command(name = "dump-gear", description = "Dumps all gear from your archive, either to stdout or into a file")
 	void dumpGear(
 		@Option(names = {"-u", "--user-name"}, required = true, description = "User name inside the archive")
@@ -455,7 +453,7 @@ public final class Application implements Runnable {
 		var gearAndActivities = getGearAndActivities(fitnessDir, userName);
 		try (
 			var out = AppendableHolder.of(target);
-			var csvPrinter = new CSVPrinter(out.value, csvFormat.getFormat().builder().setHeader(getHeader(Gear.class)).build());
+			var csvPrinter = new CSVPrinter(out.value, csvFormat.getFormat().builder().setHeader(getHeader(Gear.class)).build())
 		) {
 			gearAndActivities.gear().entrySet().stream().map(e -> new Gear(e.getKey(), e.getValue())).forEach(item -> {
 				try {
@@ -614,7 +612,7 @@ public final class Application implements Runnable {
 				if (i > 0 && !Character.isLetter(name.codePointAt(previousIndex))) {
 					sb.append("_");
 				}
-			} else if (sb.length() > 0) {
+			} else if (!sb.isEmpty()) {
 				sb.append("_");
 			}
 			sb.append(Character.toChars(Character.toLowerCase(codePoint)));
