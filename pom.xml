@@ -65,7 +65,7 @@
 		<checkstyle.version>10.4</checkstyle.version>
 		<commons-csv.version>1.9.0</commons-csv.version>
 		<indriya.version>2.1.3</indriya.version>
-		<jackson.version>2.14.0</jackson.version>
+		<jackson.version>2.15.2</jackson.version>
 		<java.version>17</java.version>
 		<jreleaser-maven-plugin.version>1.3.1</jreleaser-maven-plugin.version>
 		<junit-jupiter.version>5.9.1</junit-jupiter.version>
