@@ -56,6 +56,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
@@ -150,6 +152,7 @@ public final class Application implements Runnable {
 	private final ObjectMapper mapper;
 	private final JsonFactory jsonFactory;
 	private final HttpClient httpClient;
+	private final Semaphore maxConcurrentDownloads = new Semaphore(0);
 
 	private Application() {
 
@@ -161,6 +164,7 @@ public final class Application implements Runnable {
 		this.jsonFactory = mapper.getFactory();
 		this.httpClient = HttpClient.newBuilder()
 			.version(HttpClient.Version.HTTP_2)
+			.executor(Executors.newWorkStealingPool())
 			.followRedirects(HttpClient.Redirect.NORMAL)
 			.build();
 	}
@@ -279,9 +283,11 @@ public final class Application implements Runnable {
 				"the CSV file if the latter is specified and existing files will be overwritten; valid formats are ${COMPLETION-CANDIDATES}"
 		)
 		DownloadFormat downloadFormat,
+		@Option(names = "--concurrent-downloads", defaultValue = "8", description = "How many concurrent downloads are allowed")
+		int concurrentDownloads,
 		@Parameters(index = "0", arity = "0..1", description = "Optional target file, will be overwritten")
 		Optional<Path> target
-	) throws IOException, IllegalAccessException, InvocationTargetException {
+	) throws IOException, IllegalAccessException, InvocationTargetException, InterruptedException {
 
 		var baseDir = assertArchive();
 		var fitnessDir = baseDir.resolve(Path.of("DI_CONNECT/DI-Connect-Fitness"));
@@ -340,6 +346,7 @@ public final class Application implements Runnable {
 			.and(includeByDistance)
 			.and(includeByElevationGain);
 
+		this.maxConcurrentDownloads.release(concurrentDownloads);
 		List<CompletableFuture<Optional<Path>>> runningDownloads = new ArrayList<>();
 		try (
 			var out = AppendableHolder.of(target);
@@ -367,7 +374,12 @@ public final class Application implements Runnable {
 						}
 						printRecord(csvPrinter, activity);
 						if (downloadFormat != DownloadFormat.NONE) {
-							runningDownloads.add(scheduleDownload(activity, downloadFormat, tokens.get(), target));
+							System.err.printf("Acquiring permit (%d available)%n", maxConcurrentDownloads.availablePermits());
+							maxConcurrentDownloads.acquire();
+							runningDownloads.add(scheduleDownload(activity, downloadFormat, tokens.get(), target).whenComplete((result, orError) -> {
+								maxConcurrentDownloads.release();
+								System.err.printf("Released permit (%d available)%n", maxConcurrentDownloads.availablePermits());
+							}));
 						}
 					}
 				}
@@ -376,6 +388,7 @@ public final class Application implements Runnable {
 
 		if (!runningDownloads.isEmpty()) {
 			CompletableFuture.allOf(runningDownloads.toArray(CompletableFuture[]::new)).join();
+			maxConcurrentDownloads.drainPermits();
 		}
 	}
 
