@@ -84,7 +84,7 @@
 		<mockito.version>5.5.0</mockito.version>
 		<moditect-maven-plugin.version>1.0.0.Final</moditect-maven-plugin.version>
 		<name-of-main-class>ac.simons.garmin.Application</name-of-main-class>
-		<native.maven.plugin.version>0.9.18</native.maven.plugin.version>
+		<native.maven.plugin.version>0.9.27</native.maven.plugin.version>
 		<os-maven-plugin.version>1.7.1</os-maven-plugin.version>
 		<picocli.version>4.7.5</picocli.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
