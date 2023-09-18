@@ -23,7 +23,7 @@ module garmin.babel {
 	requires java.measure;
 	requires java.net.http;
 	requires tech.units.indriya;
-	requires commons.csv;
+	requires org.apache.commons.csv;
 
 	opens ac.simons.garmin to info.picocli;
 }
