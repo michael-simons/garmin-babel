@@ -56,7 +56,9 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Predicate;
@@ -153,6 +155,8 @@ public final class Application implements Runnable {
 	private final JsonFactory jsonFactory;
 	private final HttpClient httpClient;
 	private final Semaphore maxConcurrentDownloads = new Semaphore(0);
+	private final ExecutorService downloadScheduler = Executors.newSingleThreadExecutor();
+	private final ExecutorService downloader = ForkJoinPool.commonPool();
 
 	private Application() {
 
@@ -374,12 +378,7 @@ public final class Application implements Runnable {
 						}
 						printRecord(csvPrinter, activity);
 						if (downloadFormat != DownloadFormat.NONE) {
-							System.err.printf("Acquiring permit (%d available)%n", maxConcurrentDownloads.availablePermits());
-							maxConcurrentDownloads.acquire();
-							runningDownloads.add(scheduleDownload(activity, downloadFormat, tokens.get(), target).whenComplete((result, orError) -> {
-								maxConcurrentDownloads.release();
-								System.err.printf("Released permit (%d available)%n", maxConcurrentDownloads.availablePermits());
-							}));
+							runningDownloads.add(scheduleDownload(activity, downloadFormat, tokens.get(), target));
 						}
 					}
 				}
@@ -395,9 +394,12 @@ public final class Application implements Runnable {
 	private CompletableFuture<Optional<Path>> scheduleDownload(Activity activity, DownloadFormat format, Tokens tokens, Optional<Path> base) {
 		return CompletableFuture
 			.supplyAsync(() -> {
-				// Randomly sleep a bit
 				try {
+					// Randomly sleep a bit
 					Thread.sleep(ThreadLocalRandom.current().nextInt(10) * 100);
+					// Then acquire a permit
+					System.err.printf("Acquiring permit (%d available)%n", maxConcurrentDownloads.availablePermits());
+					maxConcurrentDownloads.acquire();
 				} catch (InterruptedException e) {
 					throw new RuntimeException(e);
 				}
@@ -415,25 +417,39 @@ public final class Application implements Runnable {
 					.header("User-Agent", "garmin-babel")
 					.GET()
 					.build();
-			})
+				},
+				// Go away from the defaultExecutor (which is usually the ForkJoinPool). The scheduleDownload shall be
+				// callable "as is", without any checks around it (and without blocking). If we don't go away from the
+				// ForkJoinPool, the system will block as soon as (#CPUS - 1)  downloads are reached, which is the number
+				// of parallelism ForkJoinPool does. While the HttpClient would in theory still work (as a matter of fact,
+				// it does and opens a connection, it cannot switch back after it completes (it defaults to
+				// new CompletableFuture<>().defaultExecutor()) which happens to be… The ForkJoinPool in most cases) and
+				// this, anything after `thenCompose` will just be dead.
+				downloadScheduler
+			)
+			// the function will still be called on the downloadScheduler, but the httpClient will switch executors anyway
 			.thenCompose(request -> httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofInputStream()))
-			.thenApply(res -> {
-				if (res.statusCode() != 200) {
-					throw new ConnectException("HTTP/2 %d for %s".formatted(res.statusCode(), res.uri()));
-				}
-				try {
-					var suffix = switch (format) {
-						case FIT -> "zip";
-						default -> format.name().toLowerCase(Locale.ROOT);
-					};
-					var filename = "%d.%s".formatted(activity.garminId(), suffix);
-					var targetFile = base.map(v -> v.resolveSibling(filename)).orElseGet(() -> Path.of(filename));
-					Files.copy(res.body(), targetFile, StandardCopyOption.REPLACE_EXISTING);
-					return Optional.of(targetFile);
-				} catch (IOException e) {
-					throw new RuntimeException(e);
-				}
-			})
+			.thenApplyAsync(res -> {
+					if (res.statusCode() != 200) {
+						throw new ConnectException("HTTP/2 %d for %s".formatted(res.statusCode(), res.uri()));
+					}
+					try {
+						var suffix = switch (format) {
+							case FIT -> "zip";
+							default -> format.name().toLowerCase(Locale.ROOT);
+						};
+						var filename = "%d.%s".formatted(activity.garminId(), suffix);
+						var targetFile = base.map(v -> v.resolveSibling(filename)).orElseGet(() -> Path.of(filename));
+						Files.copy(res.body(), targetFile, StandardCopyOption.REPLACE_EXISTING);
+						return Optional.of(targetFile);
+					} catch (IOException e) {
+						throw new RuntimeException(e);
+					}
+				},
+				// I'd be rather explicit here to which pool I want to switch back after the http client was able
+				// to deal with a request.
+				downloader
+			)
 			.thenApply(path -> {
 				path.ifPresent(v -> System.err.printf("Stored data for %d %s as %s%n", activity.garminId(), activity.name() == null ? "" : "(" + activity.name() + ")", v.toAbsolutePath()));
 				return path;
@@ -447,6 +463,9 @@ public final class Application implements Runnable {
 				}
 
 				return Optional.empty();
+			}).whenComplete((result, orError) -> {
+				maxConcurrentDownloads.release();
+				System.err.printf("Released permit (%d available)%n", maxConcurrentDownloads.availablePermits());
 			});
 	}
 
