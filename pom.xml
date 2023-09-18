@@ -90,7 +90,7 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 		<sortpom-maven-plugin.version>3.3.0</sortpom-maven-plugin.version>
-		<unit-api.version>2.1.3</unit-api.version>
+		<unit-api.version>2.2</unit-api.version>
 	</properties>
 
 	<dependencyManagement>
