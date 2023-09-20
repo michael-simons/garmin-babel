@@ -168,7 +168,7 @@ public final class Application implements Runnable {
 		this.jsonFactory = mapper.getFactory();
 		this.httpClient = HttpClient.newBuilder()
 			.version(HttpClient.Version.HTTP_2)
-			.executor(Executors.newWorkStealingPool())
+			.executor(Executors.newVirtualThreadPerTaskExecutor())
 			.followRedirects(HttpClient.Redirect.NORMAL)
 			.build();
 	}

@@ -20,7 +20,7 @@ jobs:
         uses: actions/setup-java@v3
         with:
           distribution: zulu
-          java-version: 17
+          java-version: 21
 
       - name: 'Prepare git'
         run: git config --global core.autocrlf false
@@ -57,9 +57,8 @@ jobs:
       - name: 'Set up Graal'
         uses: graalvm/setup-graalvm@v1
         with:
-          version: '22.3.0'
-          java-version: '17'
-          components: 'native-image'
+          distribution: 'graalvm-community'
+          java-version: '21'
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: 'Prepare git'
@@ -94,7 +93,7 @@ jobs:
         uses: actions/setup-java@v3
         with:
           distribution: zulu
-          java-version: 17
+          java-version: 21
 
       - name: 'Prepare git'
         run: git config --global core.autocrlf false
