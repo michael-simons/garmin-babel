@@ -237,7 +237,6 @@
 				<artifactId>license-maven-plugin</artifactId>
 				<version>${license-maven-plugin.version}</version>
 				<configuration>
-					<header>etc/license.tpl</header>
 					<strictCheck>true</strictCheck>
 					<mapping>
 						<factories>SCRIPT_STYLE</factories>
@@ -245,20 +244,26 @@
 					<properties>
 						<year>2022</year>
 					</properties>
-					<includes>
-						<include>**</include>
-					</includes>
-					<excludes>
-						<exclude>**/*.adoc</exclude>
-						<exclude>**/*.sh</exclude>
-						<exclude>**/*.tpl</exclude>
-						<exclude>**/*.txt</exclude>
-						<exclude>**/*.yaml</exclude>
-						<exclude>**/*.extension</exclude>
-						<exclude>**/org.mockito.plugins.MockMaker</exclude>
-						<exclude>**/package-info.java</exclude>
-						<exclude>**/assembly/README</exclude>
-					</excludes>
+					<licenseSets>
+						<licenseSet>
+							<header>etc/license.tpl</header>
+							<includes>
+								<include>**</include>
+							</includes>
+							<excludes>
+								<exclude>**/*.geojson</exclude>
+								<exclude>**/*.adoc</exclude>
+								<exclude>**/*.sh</exclude>
+								<exclude>**/*.tpl</exclude>
+								<exclude>**/*.txt</exclude>
+								<exclude>**/*.yaml</exclude>
+								<exclude>**/*.extension</exclude>
+								<exclude>**/org.mockito.plugins.MockMaker</exclude>
+								<exclude>**/package-info.java</exclude>
+								<exclude>**/assembly/README</exclude>
+							</excludes>
+						</licenseSet>
+					</licenseSets>
 					<dependencyEnforce>true</dependencyEnforce>
 					<dependencyExceptionMessage>One or more dependencies are licensed under a non-approved license.</dependencyExceptionMessage>
 					<dependencyPolicies>
