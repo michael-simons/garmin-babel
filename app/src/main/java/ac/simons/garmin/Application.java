@@ -215,7 +215,12 @@ public final class Application implements Runnable {
 		var baseDir = assertArchive();
 		var userBiometrics = baseDir.resolve(Path.of("DI_CONNECT/DI-Connect-User/user_biometrics.json"));
 		if (!Files.isRegularFile(userBiometrics)) {
-			throw new IllegalStateException("'user_biometrics.json' not found.");
+			var filenamePattern = Pattern.compile("\\d+_userBioMetrics\\.json").asMatchPredicate();
+			try (var files = Files.list(baseDir.resolve(Path.of("DI_CONNECT/DI-Connect-Wellness")))) {
+				userBiometrics = files
+					.filter(p -> filenamePattern.test(p.getFileName().toString()))
+					.findFirst().orElseThrow(() -> new IllegalStateException("'user_biometrics.json' not found."));
+			}
 		}
 
 		var zoneDateTimeParser = DateTimeFormatter.ISO_LOCAL_DATE_TIME.withZone(ZoneId.systemDefault());
