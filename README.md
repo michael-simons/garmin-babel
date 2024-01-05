@@ -370,9 +370,44 @@ Exporting all your gear:
   --user-name=michael.simons
 ```
 
-### Weights
+### Fitness data 
 
-#### Exporting
+#### All fitness data
+
+You can use the bash script [`bin/export_fitness_metrics.sh`](./bin/export_fitness_metrics.sh) to export a broad range of your fitness data stored in the Garmin Archive, including daily resting heart rate, weights, fitness age, VO2Max etc.
+Use it like this:
+
+```
+./bin/export_fitness_metrics.sh ~/tmp/Garmin_Archive > fitness_data.csv
+```
+
+The script exports the following fields:
+
+|    column_name     | column_type  | null |
+|--------------------|--------------|------|
+| ref_date           | DATE         | NO   |
+| chronological_age  | BIGINT       | YES  |
+| biological_age     | DECIMAL(5,2) | YES  |
+| weight             | DECIMAL(5,2) | YES  |
+| body_fat           | DECIMAL(5,2) | YES  |
+| resting_heart_rate | BIGINT       | YES  |
+| vo2max_biometric   | DECIMAL(5,2) | YES  |
+| vo2max_running     | DECIMAL(5,2) | YES  |
+| vo2max_cycling     | DECIMAL(5,2) | YES  |
+| avg_stress_level   | BIGINT       | YES  |
+| min_heart_rate     | BIGINT       | YES  |
+| max_heart_rate     | BIGINT       | YES  |
+| body_water         | DECIMAL(5,2) | YES  |
+| bone_mass          | DECIMAL(5,2) | YES  |
+| muscle_mass        | DECIMAL(5,2) | YES  |
+| lowest_spo2_value  | BIGINT       | YES  |
+
+#### Weights
+
+The original `garmin-babel` has a dedicated option for exporting the weights alone.
+Use this if you don't want DuckDB.
+
+##### Exporting
 
 The following will export weights prior to a given date, in kg, to a file name `weights.csv`, formatted for MySQL:
 
@@ -383,9 +418,9 @@ The following will export weights prior to a given date, in kg, to a file name `
   target/demo/weights.csv
 ```
 
-#### Loading
+##### Loading
 
-As it is possible to store multiple weight measurements per day, you need to filter that file afterwards.
+As it is possible to store multiple weight measurements per day, you need to filter that file afterward.
 Here, I do this by a unique constraint in MySQL while loading:
 
 ```sql
