@@ -54,7 +54,8 @@ COPY (
          cast(fa.biometricVo2Max  AS DECIMAL(5,2))                                             AS vo2max_biometric,
          cast(vo2MaxRunning.value AS DECIMAL(5,2))                                             AS vo2max_running,
          cast(vo2MaxCycling.value AS DECIMAL(5,2))                                             AS vo2max_cycling,
-         list_filter(allDayStress.aggregatorList, i -> i.type = 'TOTAL')[1].averageStressLevel AS avg_stress_level,
+         nullif(list_filter(allDayStress.aggregatorList, i -> i.type = 'TOTAL')[1].averageStressLevel, -1)
+                                                                                               AS avg_stress_level,
          uds.minHeartRate                                                                      AS min_heart_rate,
          uds.maxHeartRate                                                                      AS max_heart_rate,
          cast(w.bodyWater AS DECIMAL(5,2))                                                     AS body_water,
