@@ -232,7 +232,7 @@
 							<mainClass>${name-of-main-class}</mainClass>
 							<imageName>${project.parent.artifactId}</imageName>
 							<buildArgs>
-								<arg>--no-fallback</arg>
+								<arg>--no-fallback -O3 -march=native</arg>
 							</buildArgs>
 						</configuration>
 						<executions>
