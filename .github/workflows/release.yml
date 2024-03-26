@@ -7,7 +7,15 @@ on:
       - '*'
 
 jobs:
+  check_state:   
+    name: 'Check if a tag has been created or the workflow has been used'
+    if: (github.event_name == 'create' && github.event.ref_type == 'tag') || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Release can start"
+
   create_bundles:
+    needs: [ check_state ]
     name: 'Create bundle for ${{ matrix.os }}'
     strategy:
       fail-fast: true
@@ -46,6 +54,7 @@ jobs:
           path: target/artifacts/garmin-babel*.zip
 
   create_native_bundles:
+    needs: [ check_state ]
     name: 'Create native bundle for ${{ matrix.os }}'
     strategy:
       fail-fast: true
@@ -85,6 +94,7 @@ jobs:
           path: target/artifacts/garmin-babel*.zip
 
   create_noarch_bundle:
+    needs: [ check_state ]
     name: 'Create plain Java bundle'
     runs-on: ubuntu-latest
 
