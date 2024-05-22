@@ -96,20 +96,6 @@
 										]]>
 									</moduleInfoSource>
 								</module>
-								<module>
-									<artifact>
-										<groupId>org.apache.commons</groupId>
-										<artifactId>commons-csv</artifactId>
-										<version>${commons-csv.version}</version>
-									</artifact>
-									<moduleInfoSource>
-										<![CDATA[
-										module org.apache.commons.csv {
-											exports org.apache.commons.csv;
-										}
-										]]>
-									</moduleInfoSource>
-								</module>
 							</modules>
 						</configuration>
 					</execution>
