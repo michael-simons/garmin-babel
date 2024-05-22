@@ -86,7 +86,7 @@
 		<name-of-main-class>ac.simons.garmin.Application</name-of-main-class>
 		<native.maven.plugin.version>0.10.1</native.maven.plugin.version>
 		<os-maven-plugin.version>1.7.1</os-maven-plugin.version>
-		<picocli.version>4.7.5</picocli.version>
+		<picocli.version>4.7.6</picocli.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 		<sortpom-maven-plugin.version>3.4.1</sortpom-maven-plugin.version>
