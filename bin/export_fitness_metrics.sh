@@ -54,7 +54,7 @@ COPY (
          cast(fa.biometricVo2Max  AS DECIMAL(5,2))                                             AS vo2max_biometric,
          cast(vo2MaxRunning.value AS DECIMAL(5,2))                                             AS vo2max_running,
          cast(vo2MaxCycling.value AS DECIMAL(5,2))                                             AS vo2max_cycling,
-         nullif(list_filter(allDayStress.aggregatorList, i -> i.type = 'TOTAL')[1].averageStressLevel, -1)
+         nullif(greatest(-1, list_filter(allDayStress.aggregatorList, i -> i.type = 'TOTAL')[1].averageStressLevel), -1)
                                                                                                AS avg_stress_level,
          uds.minHeartRate                                                                      AS min_heart_rate,
          uds.maxHeartRate                                                                      AS max_heart_rate,
@@ -62,7 +62,7 @@ COPY (
          cast(w.boneMass / 1000.0 AS DECIMAL(5,2))                                             AS bone_mass,
          cast(w.muscleMass / 1000.0 AS DECIMAL(5,2))                                           AS muscle_mass,
          uds.lowestSpo2Value                                                                   AS lowest_spo2_value,
-  FROM read_json('$GARMIN_ARCHIVE/DI_CONNECT/DI-Connect-Aggregator/UDSFile_*.json', auto_detect=true) uds
+  FROM read_json('$GARMIN_ARCHIVE/DI_CONNECT/DI-Connect-Aggregator/UDSFile_*.json', auto_detect=true, union_by_name=true) uds
   LEFT OUTER JOIN weights w ON w.calendarDate = uds.calendarDate
   LEFT OUTER JOIN fitnessAge fa ON fa.calendarDate = uds.calendarDate
   LEFT OUTER JOIN vo2MaxRunning ON vo2MaxRunning.calendarDate = uds.calendarDate
