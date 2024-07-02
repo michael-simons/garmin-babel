@@ -432,3 +432,8 @@ IGNORE 1 LINES
 SET measured_on = date(str_to_date(@measured_on, '%Y-%m-%dT%H:%i:%sZ'))
 ;
 ```
+
+## Other tooling for (Garmin) FIT files
+
+* The official Garmin FIT SDK: https://developer.garmin.com/fit/overview/, the exports of `FIT CSV Tool` are a great fit for DuckDB analytics; the tool works well as GraalVM native image, too (`native-image -jar FitCSVTool.jar` gives you a nice standalone executable)
+* Rusty, but fit: https://github.com/meistermeier/rusty-but-fit Gerrits tool (and library) for parsing FIT data
