@@ -39,6 +39,7 @@ import tech.units.indriya.quantity.Quantities;
  *
  * @author Michael J. Simons
  * @param garminId        The id of this activity as used by Garmin
+ * @param deviceId        The id of the {@link RegisteredDevice#deviceId() registered device}
  * @param name            Name given in Garmin connect
  * @param startedOn       Start date
  * @param activityType    Type of the activity (more detailed than the general {@link #sportType}.
@@ -60,6 +61,7 @@ import tech.units.indriya.quantity.Quantities;
  */
 record Activity(
 	long garminId,
+	Long deviceId,
 	String name,
 	Instant startedOn,
 	String activityType,
@@ -90,6 +92,7 @@ record Activity(
 
 		return new Activity(
 			((Number) source.get("activityId")).longValue(),
+			source.containsKey("deviceId") ? ((Number) source.get("deviceId")).longValue() : null,
 			(String) source.get("name"),
 			startedOn,
 			(String) source.get("activityType"),
