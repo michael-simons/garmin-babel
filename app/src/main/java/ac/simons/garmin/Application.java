@@ -498,13 +498,8 @@ public final class Application implements Runnable {
 			var out = AppendableHolder.of(target);
 			var csvPrinter = new CSVPrinter(out.value, csvFormat.getFormat().builder().setHeader(getHeader(Gear.class)).build())
 		) {
-			gearAndActivities.gear().entrySet().stream().map(e -> new Gear(e.getKey(), e.getValue())).forEach(item -> {
-				try {
-					printRecord(csvPrinter, item);
-				} catch (Exception e) {
-					throw new RuntimeException(e);
-				}
-			});
+			gearAndActivities.gear().entrySet().stream().map(e -> new Gear(e.getKey(), e.getValue()))
+				.forEach(item -> printRecord(csvPrinter, item));
 		}
 	}
 
