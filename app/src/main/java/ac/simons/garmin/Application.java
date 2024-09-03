@@ -35,6 +35,7 @@ import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.nio.file.StandardOpenOption;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.time.Duration;
@@ -414,14 +415,7 @@ public final class Application implements Runnable {
 					default -> "https://connect.garmin.com/download-service/export/%s/activity/%d".formatted(format.name().toLowerCase(Locale.ROOT), activity.garminId());
 				};
 
-				return HttpRequest
-					.newBuilder(URI.create(uri))
-					.header("Authorization", "Bearer %s".formatted(tokens.backend()))
-					.header("DI-Backend", "connectapi.garmin.com")
-					.header("Cookie", "JWT_FGP=%s".formatted(tokens.jwt()))
-					.header("User-Agent", "garmin-babel")
-					.GET()
-					.build();
+				return createHttpRequest(tokens, uri);
 				},
 				// Go away from the defaultExecutor (which is usually the ForkJoinPool). The scheduleDownload shall be
 				// callable "as is", without any checks around it (and without blocking). If we don't go away from the
@@ -474,6 +468,18 @@ public final class Application implements Runnable {
 			});
 	}
 
+	private static HttpRequest createHttpRequest(Tokens tokens, String uri) {
+
+		return HttpRequest
+			.newBuilder(URI.create(uri))
+			.header("Authorization", "Bearer %s".formatted(tokens.backend()))
+			.header("DI-Backend", "connectapi.garmin.com")
+			.header("Cookie", "JWT_FGP=%s".formatted(tokens.jwt()))
+			.header("User-Agent", "garmin-babel")
+			.GET()
+			.build();
+	}
+
 	@Command(name = "dump-gear", description = "Dumps all gear from your archive, either to stdout or into a file")
 	void dumpGear(
 		@Option(names = {"-u", "--user-name"}, required = true, description = "User name inside the archive")
@@ -499,6 +505,49 @@ public final class Application implements Runnable {
 					throw new RuntimeException(e);
 				}
 			});
+		}
+	}
+
+	enum DeviceFormat {
+		RAW,
+		CSV
+	}
+
+	@SuppressWarnings("unchecked")
+	@Command(name = "dump-devices", description = "Dumps all registered garmin devices, requires an internet connection and JWT tokens")
+	void dumpDevices(
+		@Option(names = {"-f", "--format"}, required = true, description = "The format to dump, use RAW to get the original response from Garmin.", defaultValue = "CSV")
+		DeviceFormat format,
+		@Parameters(index = "0", arity = "0..1", description = "Optional target file, will be overwritten")
+		Optional<Path> target
+	) throws IOException, InterruptedException, InvocationTargetException, IllegalAccessException {
+
+		var tokens = assertTokens();
+		var url = "https://connect.garmin.com/web-gateway/device-info/primary-training-device";
+
+		var request = createHttpRequest(tokens, url);
+		var result = this.httpClient.send(request, HttpResponse.BodyHandlers.ofInputStream());
+
+		if (result.statusCode() != 200) {
+			throw new ConnectException("HTTP/2 %d for %s".formatted(result.statusCode(), result.uri()));
+		}
+
+		if (format == DeviceFormat.CSV) {
+			try (
+				var in = result.body();
+				var out = AppendableHolder.of(target);
+				var csvPrinter = new CSVPrinter(out.value, csvFormat.getFormat().builder().setHeader(getHeader(RegisteredDevice.class)).build());
+			) {
+				((List<Map<String, Object>>) mapper.readValue(in, MAP_OF_OBJECTS).get("RegisteredDevices"))
+					.stream().map(raw -> new RegisteredDevice(((Number) raw.get("unitId")).longValue(), (String) raw.get("productDisplayName"), (String) raw.get("serialNumber"), (String) raw.get("productSku")))
+					.forEach(registeredDevice -> printRecord(csvPrinter, registeredDevice));
+			}
+		} else {
+			try (
+				var in = result.body();
+				var out = target.isEmpty() ? null : Files.newOutputStream(target.get(), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)) {
+				in.transferTo(out == null ? System.out : out);
+			}
 		}
 	}
 
@@ -553,7 +602,15 @@ public final class Application implements Runnable {
 		return Arrays.stream(components).map(c -> toSnakeCase(c.getName())).toArray(String[]::new);
 	}
 
-	private <T extends Record> void printRecord(CSVPrinter printer, T record) throws
+	private <T extends Record> void printRecord(CSVPrinter printer, T record) {
+		try {
+			printRecord0(printer, record);
+		} catch (IOException | InvocationTargetException | IllegalAccessException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	private <T extends Record> void printRecord0(CSVPrinter printer, T record) throws
 		InvocationTargetException, IllegalAccessException, IOException {
 		var components = record.getClass().getRecordComponents();
 		for (var component : components) {

@@ -8,6 +8,10 @@
     "allPublicMethods" : true
   },
   {
+    "name":"ac.simons.garmin.RegisteredDevice",
+    "allPublicMethods" : true
+  },
+  {
     "name":"ac.simons.garmin.WeightMeasurement",
     "allPublicMethods" : true
   }
