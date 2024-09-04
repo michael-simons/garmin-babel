@@ -145,7 +145,7 @@ public final class Application implements Runnable {
 	@Option(names = {"--jwt:env"}, description = "The name of the variable holding the Garmin JWT, find the latter in your browsers cookie store after interacting with Garmin Connect, defaults to ${DEFAULT-VALUE}", hidden = true)
 	private String jwtEnv = "GARMIN_JWT";
 
-	@Parameters(index = "0", description = "Directory containing the extracted contents of the Garmin ZIP archive")
+	@Parameters(index = "0", arity = "0..1", description = "Directory containing the extracted contents of the Garmin ZIP archive")
 	private Path archive;
 
 	@Spec
@@ -199,6 +199,16 @@ public final class Application implements Runnable {
 
 		var generateCompletionCmd = commandLine.getSubcommands().get("generate-completion");
 		generateCompletionCmd.getCommandSpec().usageMessage().hidden(true);
+
+		var defaultStrategy = commandLine.getExecutionStrategy();
+		commandLine.setExecutionStrategy(parseResult -> {
+			var subcommand = parseResult.subcommand();
+			if (subcommand != null && !subcommand.commandSpec().name().equals("dump-devices") && !parseResult.hasMatchedPositional(0)) {
+				var archiveParameter = commandLine.getCommandSpec().positionalParameters().getFirst();
+				throw new CommandLine.MissingParameterException(commandLine, archiveParameter, "%s requires the <archive> parameter".formatted(subcommand.commandSpec().name()));
+			}
+			return defaultStrategy.execute(parseResult);
+		});
 
 		int exitCode = commandLine.execute(args);
 		System.exit(exitCode);
@@ -297,7 +307,7 @@ public final class Application implements Runnable {
 		int concurrentDownloads,
 		@Parameters(index = "0", arity = "0..1", description = "Optional target file, will be overwritten")
 		Optional<Path> target
-	) throws IOException, IllegalAccessException, InvocationTargetException, InterruptedException {
+	) throws IOException {
 
 		var baseDir = assertArchive();
 		var fitnessDir = baseDir.resolve(Path.of("DI_CONNECT/DI-Connect-Fitness"));
@@ -515,7 +525,7 @@ public final class Application implements Runnable {
 		DeviceFormat format,
 		@Parameters(index = "0", arity = "0..1", description = "Optional target file, will be overwritten")
 		Optional<Path> target
-	) throws IOException, InterruptedException, InvocationTargetException, IllegalAccessException {
+	) throws IOException, InterruptedException {
 
 		var tokens = assertTokens();
 		var url = "https://connect.garmin.com/web-gateway/device-info/primary-training-device";
@@ -652,7 +662,7 @@ public final class Application implements Runnable {
 	}
 
 	private Path assertArchive() {
-		if (!Files.isDirectory(this.archive)) {
+		if (this.archive == null || !Files.isDirectory(this.archive)) {
 			throw new IllegalArgumentException(String.format("'%s' is not a valid directory.", this.archive));
 		}
 		return this.archive;
