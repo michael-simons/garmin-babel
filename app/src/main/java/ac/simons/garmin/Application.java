@@ -62,6 +62,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.BiFunction;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -320,13 +321,7 @@ public final class Application implements Runnable {
 			tokens = Optional.of(assertTokens());
 		}
 
-		// Select filenames
-		var fileNamePattern = Pattern.compile(Pattern.quote(userName) + "_\\d+_summarizedActivities.json");
-		var summarizedActivities = Files.list(fitnessDir)
-			.filter(path -> fileNamePattern.matcher(path.getFileName().toString()).matches())
-			.sorted()
-			.toList();
-
+		var summarizedActivities = loadSummarizedActivities(userName, fitnessDir);
 		if (summarizedActivities.isEmpty()) {
 			return;
 		}
@@ -394,7 +389,7 @@ public final class Application implements Runnable {
 						}
 						printRecord(csvPrinter, activity);
 						if (downloadFormat != DownloadFormat.NONE) {
-							runningDownloads.add(scheduleDownload(activity, downloadFormat, tokens.get(), target));
+							runningDownloads.add(scheduleDownload(activity, downloadFormat, tokens.get(), target, Path::resolveSibling));
 						}
 					}
 				}
@@ -407,7 +402,89 @@ public final class Application implements Runnable {
 		}
 	}
 
-	private CompletableFuture<Optional<Path>> scheduleDownload(Activity activity, DownloadFormat format, Tokens tokens, Optional<Path> base) {
+	@Command(name = "download-activities", description = "Download all matching activities in the given format; requires that " +
+		"both `GARMIN_BACKEND_TOKEN` and `GARMIN_JWT` variables are set; files will either be stored in the current directory " +
+		"or in parallel to the CSV file if the latter is specified and existing files will be overwritten; valid formats are " +
+		"${COMPLETION-CANDIDATES}")
+	void downloadActivities(
+		@Option(names = {"-u", "--user-name"}, required = true, description = "User name inside the archive")
+		String userName,
+		@Option(names = {"--ids"}, split = ",", required = true, description = "The ids of the activities to download")
+		Set<Long> ids,
+		@Option(names = {"--formats"}, split = ",", required = true, description = "The formats to download", defaultValue = "GPX,FIT")
+		Set<DownloadFormat> formats,
+		@Option(names = "--concurrent-downloads", defaultValue = "8", description = "How many concurrent downloads are allowed")
+		int concurrentDownloads,
+		@Parameters(index = "0", arity = "0..1", description = "Optional target file, will be overwritten")
+		Optional<Path> target
+	) throws IOException {
+
+		var baseDir = assertArchive();
+		var fitnessDir = baseDir.resolve(Path.of("DI_CONNECT/DI-Connect-Fitness"));
+		if (!Files.isDirectory(fitnessDir)) {
+			throw new IllegalStateException("'DI_CONNECT/DI-Connect-Fitness' not found.");
+		}
+
+		var tokens = assertTokens();
+		var summarizedActivities = loadSummarizedActivities(userName, fitnessDir);
+		if (summarizedActivities.isEmpty()) {
+			return;
+		}
+
+		Predicate<Activity> include = a -> ids.contains(a.garminId());
+
+		if (target.isPresent()) {
+			Files.createDirectories(target.get());
+		}
+
+		this.maxConcurrentDownloads.release(concurrentDownloads);
+		List<CompletableFuture<Optional<Path>>> runningDownloads = new ArrayList<>();
+			for (var path : summarizedActivities) {
+				try (
+					var in = new BufferedInputStream(Files.newInputStream(path));
+					var parser = jsonFactory.createParser(in)
+				) {
+					if (parser.nextToken() != JsonToken.START_ARRAY) {
+						throw new IllegalStateException("Expected content to be an array");
+					}
+					if (parser.nextToken() != JsonToken.START_OBJECT || !"summarizedActivitiesExport".equals(parser.nextFieldName()) || parser.nextToken() != JsonToken.START_ARRAY) {
+						throw new IllegalStateException("Expected content to be the start of `summarizedActivitiesExport`");
+					}
+
+					while (parser.nextToken() != JsonToken.END_ARRAY) {
+						var source = mapper.readValue(parser, MAP_OF_OBJECTS);
+						var activity = Activity.of(source);
+
+						if (!include.test(activity)) {
+							continue;
+						}
+						for (var downloadFormat : formats) {
+							if (downloadFormat == DownloadFormat.NONE) {
+								continue;
+							}
+							runningDownloads.add(scheduleDownload(activity, downloadFormat, tokens, target, Path::resolve));
+						}
+					}
+				}
+			}
+
+		if (!runningDownloads.isEmpty()) {
+			CompletableFuture.allOf(runningDownloads.toArray(CompletableFuture[]::new)).join();
+			maxConcurrentDownloads.drainPermits();
+		}
+	}
+
+	@SuppressWarnings("resource") // I sure hope `toList` does close the stream
+	private static List<Path> loadSummarizedActivities(String userName, Path fitnessDir) throws IOException {
+		// Select filenames
+		var fileNamePattern = Pattern.compile(Pattern.quote(userName) + "_\\d+_summarizedActivities.json");
+		return Files.list(fitnessDir)
+			.filter(path -> fileNamePattern.matcher(path.getFileName().toString()).matches())
+			.sorted()
+			.toList();
+	}
+
+	private CompletableFuture<Optional<Path>> scheduleDownload(Activity activity, DownloadFormat format, Tokens tokens, Optional<Path> base, BiFunction<Path, String, Path> resolver) {
 		return CompletableFuture
 			.supplyAsync(() -> {
 				try {
@@ -448,7 +525,7 @@ public final class Application implements Runnable {
 							default -> format.name().toLowerCase(Locale.ROOT);
 						};
 						var filename = "%d.%s".formatted(activity.garminId(), suffix);
-						var targetFile = base.map(v -> v.resolveSibling(filename)).orElseGet(() -> Path.of(filename));
+						var targetFile = base.map(v -> resolver.apply(v, filename)).orElseGet(() -> Path.of(filename));
 						Files.copy(res.body(), targetFile, StandardCopyOption.REPLACE_EXISTING);
 						return Optional.of(targetFile);
 					} catch (IOException e) {
