@@ -400,7 +400,7 @@
 			<plugin>
 				<artifactId>maven-compiler-plugin</artifactId>
 				<configuration>
-					<forceJavacCompilerUse>true</forceJavacCompilerUse>
+					<forceLegacyJavacApi>true</forceLegacyJavacApi>
 					<showWarnings>true</showWarnings>
 					<release>${java.version}</release>
 					<compilerArgs>

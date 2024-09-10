@@ -36,14 +36,14 @@
 	</dependencies>
 
 	<build>
+		<directory>${project.basedir}/../target/artifacts</directory>
+		<finalName>${project.parent.artifactId}-${project.version}-${os.detected.classifier}</finalName>
 		<plugins>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-jlink-plugin</artifactId>
 				<extensions>true</extensions>
 				<configuration>
-					<buildDirectory>${project.basedir}/../target/artifacts</buildDirectory>
-					<finalName>${project.parent.artifactId}-${project.version}-${os.detected.classifier}</finalName>
 					<launcher>garmin-babel=garmin.babel/${name-of-main-class}</launcher>
 					<modulePaths>
 						<modulePath>${project.basedir}/../app/target/modules</modulePath>
