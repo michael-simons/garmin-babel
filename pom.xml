@@ -66,7 +66,7 @@
 		<commons-csv.version>1.11.0</commons-csv.version>
 		<indriya.version>2.2</indriya.version>
 		<jackson.version>2.17.2</jackson.version>
-		<java.version>21</java.version>
+		<java.version>23</java.version>
 		<jreleaser-maven-plugin.version>1.14.0</jreleaser-maven-plugin.version>
 		<junit-jupiter.version>5.11.0</junit-jupiter.version>
 		<license-maven-plugin.version>4.5</license-maven-plugin.version>
@@ -84,7 +84,7 @@
 		<mockito.version>5.13.0</mockito.version>
 		<moditect-maven-plugin.version>1.2.2.Final</moditect-maven-plugin.version>
 		<name-of-main-class>ac.simons.garmin.Application</name-of-main-class>
-		<native.maven.plugin.version>0.10.2</native.maven.plugin.version>
+		<native.maven.plugin.version>0.10.3</native.maven.plugin.version>
 		<os-maven-plugin.version>1.7.1</os-maven-plugin.version>
 		<picocli.version>4.7.6</picocli.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>

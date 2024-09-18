@@ -214,11 +214,13 @@
 						<version>${native.maven.plugin.version}</version>
 						<extensions>true</extensions>
 						<configuration>
-							<requiredVersion>22.3</requiredVersion>
+							<requiredVersion>23</requiredVersion>
 							<mainClass>${name-of-main-class}</mainClass>
 							<imageName>${project.parent.artifactId}</imageName>
 							<buildArgs>
-								<arg>--no-fallback -O3 -march=native</arg>
+								<arg>--no-fallback</arg>
+								<arg>-Os</arg>
+								<arg>-march=native</arg>
 							</buildArgs>
 						</configuration>
 						<executions>
