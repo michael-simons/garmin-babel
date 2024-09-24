@@ -487,7 +487,7 @@
 									</artifact>
 								</artifacts>
 								<java>
-									<version>17</version>
+									<version>23</version>
 									<mainClass>${name-of-main-class}</mainClass>
 								</java>
 							</garmin-babel-no-arch>
