@@ -457,8 +457,8 @@
 										<platform>windows-x86_64</platform>
 									</artifact>
 									<artifact>
-										<path>{{artifactsDir}}/{{projectName}}-{{projectVersion}}-osx-x86_64.zip</path>
-										<platform>osx-x86_64</platform>
+										<path>{{artifactsDir}}/{{projectName}}-{{projectVersion}}-osx-aarch_64.zip</path>
+										<platform>osx-aarch_64</platform>
 									</artifact>
 								</artifacts>
 							</garmin-babel>
@@ -474,8 +474,8 @@
 										<platform>windows-x86_64</platform>
 									</artifact>
 									<artifact>
-										<path>{{artifactsDir}}/{{projectName}}-{{projectVersion}}-osx-x86_64-native.zip</path>
-										<platform>osx-x86_64</platform>
+										<path>{{artifactsDir}}/{{projectName}}-{{projectVersion}}-osx-aarch_64-native.zip</path>
+										<platform>osx-aarch_64</platform>
 									</artifact>
 								</artifacts>
 							</garmin-babel-native>
