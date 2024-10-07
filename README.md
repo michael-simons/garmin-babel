@@ -133,6 +133,12 @@ Then in the _network_ tab of your Browsers developer tools (name might be differ
 export GARMIN_BACKEND_TOKEN=long_gibberish_token_from_one_of_the_requests
 ```
 
+> [!TIP]
+> There's a script in the `bin` folder that automates this process. 
+> The script emulates a browser flow and does all the things for you, but there's absolutely no guarantee that it will keep on working when Garmin chances Connect-
+> In a regular shell you would use it like `source retrieve_garmin_tokens.sh <username> <password>`.
+> The script requires `cURL` and `jq`.
+
 Then, the `--download` option can be used like this:
 
 ```bash
