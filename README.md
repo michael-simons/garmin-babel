@@ -235,6 +235,10 @@ duckdb -s "
 
 ##### Working with spatial data
 
+> [!WARNING]
+> The spatial extension changed considerably since I wrote the code below.
+> I developed this with DuckDB 0.8.1, it does no longer work with DuckDB >= 1.0.0
+
 Spatial you say? DuckDb has you covered: [PostGEESE? Introducing The DuckDB Spatial Extension](https://duckdb.org/2023/04/28/spatial.html).
 
 Let's create a proper database first, with an actual table holding the activities:
