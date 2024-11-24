@@ -235,10 +235,6 @@ duckdb -s "
 
 ##### Working with spatial data
 
-> [!WARNING]
-> The spatial extension changed considerably since I wrote the code below.
-> I developed this with DuckDB 0.8.1, it does no longer work with DuckDB >= 1.0.0
-
 Spatial you say? DuckDb has you covered: [PostGEESE? Introducing The DuckDB Spatial Extension](https://duckdb.org/2023/04/28/spatial.html).
 
 Let's create a proper database first, with an actual table holding the activities:
@@ -280,7 +276,7 @@ Let's create a SQL script todo this, ofc with DuckDB CLI:
 duckdb --noheader -list -s "
 SELECT 'UPDATE activities ' ||
        'SET track = (' ||
-       'SELECT ST_FlipCoordinates(ST_GeomFromWKB(wkb_geometry)) FROM st_read(''target/activities/' || garmin_id  || '.gpx'', layer=''tracks'')' ||
+       'SELECT ST_FlipCoordinates(geom) FROM st_read(''target/activities/' || garmin_id  || '.gpx'', layer=''tracks'')' ||
        ') WHERE garmin_id = '|| garmin_id || ';'
 FROM activities
 WHERE (sport_type = 'RUNNING' AND distance >= 15)
@@ -308,7 +304,7 @@ duckdb -s ".mode markdown" -s "
   LOAD spatial;
   WITH gemeinden AS (
     SELECT gen AS gemeinde,         
-           ST_transform(ST_GeomFromWKB(wkb_geometry), 'EPSG:25832', 'EPSG:4326') geom
+           ST_transform(geom), 'EPSG:25832', 'EPSG:4326') geom
     FROM st_read('./target/verwaltungsgebiete/vg250_ebenen_0101/VG250_GEM.shp')
   ),
   intersections AS (
