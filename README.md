@@ -285,7 +285,8 @@ WHERE (sport_type = 'RUNNING' AND distance >= 15)
 duckdb -s "INSTALL spatial; LOAD spatial;" -s ".read target/load_tracks.sql" target/activities.db
 ```
 
-*NOTE* For whatever reason the coordinates will be in long/lat when I read from the GPX file without applying `ST_FlipCoordinates`. 
+> [!WARNING]
+> For whatever reason the coordinates had been in the wrong order when I read from the GPX file without applying `ST_FlipCoordinates` with DuckDB 0.8. This might maybe no longer necessary in 1.0.
 
 Now let's answer the question, through which German communities did I ran and ride the most?
 Germany offers a lot of spatial data for free, for example the [Verwaltungsgebiete](https://gdz.bkg.bund.de/index.php/default/digitale-geodaten/verwaltungsgebiete.html).
