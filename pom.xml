@@ -64,7 +64,7 @@
 		<assertj.version>3.26.3</assertj.version>
 		<checkstyle.version>10.20.1</checkstyle.version>
 		<commons-csv.version>1.12.0</commons-csv.version>
-		<indriya.version>2.2.1</indriya.version>
+		<indriya.version>2.2.2</indriya.version>
 		<jackson.version>2.18.2</jackson.version>
 		<java.version>23</java.version>
 		<jreleaser-maven-plugin.version>1.15.0</jreleaser-maven-plugin.version>
