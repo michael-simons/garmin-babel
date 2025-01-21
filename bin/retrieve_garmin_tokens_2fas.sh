@@ -39,17 +39,17 @@ else
   " | awk '{$1=$1};1' > .tmp/header.txt
 
   # Login and trigger 2fas code
-  mfaMethod=`curl 'https://sso.garmin.com/portal/api/login?clientId=GarminConnect&locale=en-US&service=https%3A%2F%2Fconnect.garmin.com%2Fmodern' -s \
+  mfaMethod=$(curl 'https://sso.garmin.com/portal/api/login?clientId=GarminConnect&locale=en-US&service=https%3A%2F%2Fconnect.garmin.com%2Fmodern' -s \
     -H @.tmp/header.txt \
     -H 'Content-Type: application/json' \
     -H 'Origin: https://sso.garmin.com' \
     -H 'Referer: https://sso.garmin.com/portal/sso/en-US/sign-in?clientId=GarminConnect&service=https%3A%2F%2Fconnect.garmin.com%2Fmodern' \
     --cookie-jar .tmp/cookies.txt \
     --data-raw '{"username":"'"$_USERNAME"'","password":"'"$_PASSWORD"'","rememberMe":false,"captchaToken":""}' | \
-  jq --raw-output '.customerMfaInfo.mfaLastMethodUsed'`
+  jq --raw-output '.customerMfaInfo.mfaLastMethodUsed')
   
   echo 'Enter 2fas token for method "'"$mfaMethod"'"'
-  read token
+  read -r token
   
   # Authenticate via token
   curl 'https://sso.garmin.com/portal/api/mfa/verifyCode?clientId=GarminConnect&locale=en-US&service=https%3A%2F%2Fconnect.garmin.com%2Fmodern' -s \
