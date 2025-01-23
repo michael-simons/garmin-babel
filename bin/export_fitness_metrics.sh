@@ -44,6 +44,13 @@ COPY (
     FROM read_json('$GARMIN_ARCHIVE/DI_CONNECT/DI-Connect-Wellness/*_fitnessAgeData.json', auto_detect=true)
     WHERE currentBioAge IS NOT NULL
     QUALIFY rn <= 1
+  ), bloodPressure AS (
+    SELECT make_date(metaData.calendarDate.year, metaData.calendarDate.monthValue, metaData.calendarDate.dayOfMonth) AS calendarDate,
+           avg(bloodPressure.systolic)::UTINYINT  AS bp_systolic,
+           avg(bloodPressure.diastolic)::UTINYINT AS bp_diastolic,
+           avg(bloodPressure.pulse)::UTINYINT     AS bp_pulse
+    FROM read_json('$GARMIN_ARCHIVE/DI_CONNECT/DI-Connect-Wellness/BloodPressureFile_*.json')
+    GROUP by calendarDate
   )
   SELECT uds.calendarDate                                                                      AS ref_date,
          fa.chronologicalAge                                                                   AS chronological_age,
@@ -62,11 +69,15 @@ COPY (
          cast(w.boneMass / 1000.0 AS DECIMAL(5,2))                                             AS bone_mass,
          cast(w.muscleMass / 1000.0 AS DECIMAL(5,2))                                           AS muscle_mass,
          uds.lowestSpo2Value                                                                   AS lowest_spo2_value,
+         bloodPressure.bp_systolic                                                             AS bp_systolic,
+         bloodPressure.bp_diastolic                                                            AS bp_diastolic,
+         bloodPressure.bp_pulse                                                                AS bp_pulse
   FROM read_json('$GARMIN_ARCHIVE/DI_CONNECT/DI-Connect-Aggregator/UDSFile_*.json', auto_detect=true, union_by_name=true) uds
   LEFT OUTER JOIN weights w ON w.calendarDate = uds.calendarDate
   LEFT OUTER JOIN fitnessAge fa ON fa.calendarDate = uds.calendarDate
   LEFT OUTER JOIN vo2MaxRunning ON vo2MaxRunning.calendarDate = uds.calendarDate
   LEFT OUTER JOIN vo2MaxCycling ON vo2MaxCycling.calendarDate = uds.calendarDate
+  LEFT OUTER JOIN bloodPressure ON bloodPressure.calendarDate = uds.calendarDate
   ORDER BY uds.calendarDate ASC
 ) TO '/dev/stdout' (FORMAT CSV)
 "
