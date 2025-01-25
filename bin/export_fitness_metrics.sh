@@ -46,9 +46,9 @@ COPY (
     QUALIFY rn <= 1
   ), bloodPressure AS (
     SELECT make_date(metaData.calendarDate.year, metaData.calendarDate.monthValue, metaData.calendarDate.dayOfMonth) AS calendarDate,
-           avg(bloodPressure.systolic)::UTINYINT  AS bp_systolic,
-           avg(bloodPressure.diastolic)::UTINYINT AS bp_diastolic,
-           avg(bloodPressure.pulse)::UTINYINT     AS bp_pulse
+           min(bloodPressure.systolic)  || '-' || max(bloodPressure.systolic)  AS bp_systolic,
+           min(bloodPressure.diastolic) || '-' || max(bloodPressure.diastolic) AS bp_diastolic,
+           avg(bloodPressure.pulse)::UTINYINT                                  AS bp_pulse
     FROM read_json('$GARMIN_ARCHIVE/DI_CONNECT/DI-Connect-Wellness/BloodPressureFile_*.json')
     GROUP by calendarDate
   )
