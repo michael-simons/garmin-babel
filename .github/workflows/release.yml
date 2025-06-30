@@ -7,7 +7,7 @@ on:
       - '*'
 
 jobs:
-  check_state:   
+  check_state:
     name: 'Check if a tag has been created or the workflow has been used'
     if: (github.event_name == 'create' && github.event.ref_type == 'tag') || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
@@ -28,7 +28,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: zulu
-          java-version: 23
+          java-version: 24
 
       - name: 'Prepare git'
         run: git config --global core.autocrlf false
@@ -67,7 +67,7 @@ jobs:
         uses: graalvm/setup-graalvm@v1
         with:
           distribution: 'graalvm'
-          java-version: '23'
+          java-version: '24'
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: 'Prepare git'
@@ -103,7 +103,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: zulu
-          java-version: 23
+          java-version: 24
 
       - name: 'Prepare git'
         run: git config --global core.autocrlf false

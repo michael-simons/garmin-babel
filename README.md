@@ -28,7 +28,7 @@ cd -
 
 ### Building the tool yourself
 
-You need Java 17 or higher installed to build the program. Build should be quite fast, there are no tests ;)
+You need Java 24 or higher installed to build the program. Build should be quite fast, there are no tests ;)
 
 ```bash
 ./mvnw clean package -no-transfer-progress
