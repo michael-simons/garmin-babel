@@ -166,7 +166,7 @@ public final class Application implements Runnable {
 	private final RetryPolicy<HttpResponse<InputStream>> downloadRetryPolicy = RetryPolicy.<HttpResponse<InputStream>>builder()
 		.handleResultIf(response -> response.statusCode() == 408)
 		.onRetry(e -> System.err.printf("Retrying... %s%n", e.getLastResult().uri()))
-		.withMaxRetries(5)
+		.withMaxRetries(3)
 		.withBackoff(Duration.ofSeconds(1), Duration.ofSeconds(10))
 		.build();
 
