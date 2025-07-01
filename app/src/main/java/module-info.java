@@ -24,6 +24,7 @@ module garmin.babel {
 	requires java.net.http;
 	requires tech.units.indriya;
 	requires org.apache.commons.csv;
+	requires dev.failsafe.core;
 
 	opens ac.simons.garmin to info.picocli;
 }

@@ -24,6 +24,7 @@ import java.io.BufferedInputStream;
 import java.io.BufferedWriter;
 import java.io.Closeable;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStreamWriter;
 import java.io.Serial;
 import java.lang.reflect.InvocationTargetException;
@@ -81,6 +82,8 @@ import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import dev.failsafe.Failsafe;
+import dev.failsafe.RetryPolicy;
 import picocli.AutoComplete.GenerateCompletion;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
@@ -159,6 +162,13 @@ public final class Application implements Runnable {
 	private final Semaphore maxConcurrentDownloads = new Semaphore(0);
 	private final ExecutorService downloadScheduler = Executors.newSingleThreadExecutor();
 	private final ExecutorService downloader = ForkJoinPool.commonPool();
+
+	private final RetryPolicy<HttpResponse<InputStream>> downloadRetryPolicy = RetryPolicy.<HttpResponse<InputStream>>builder()
+		.handleResultIf(response -> response.statusCode() == 408)
+		.onRetry(e -> System.err.printf("Retrying... %s%n", e.getLastResult().uri()))
+		.withMaxRetries(5)
+		.withBackoff(Duration.ofSeconds(1), Duration.ofSeconds(10))
+		.build();
 
 	private Application() {
 
@@ -513,8 +523,9 @@ public final class Application implements Runnable {
 				// this, anything after `thenCompose` will just be dead.
 				downloadScheduler
 			)
-			// the function will still be called on the downloadScheduler, but the httpClient will switch executors anyway
-			.thenCompose(request -> httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofInputStream()))
+			// the function will still be called on
+			// the downloadScheduler, but the httpClient will switch executors anyway
+			.thenCompose(request -> Failsafe.with(this.downloadRetryPolicy).getStageAsync(() -> httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofInputStream())))
 			.thenApplyAsync(res -> {
 					if (res.statusCode() != 200) {
 						throw new ConnectException("HTTP/2 %d for %s".formatted(res.statusCode(), res.uri()));
