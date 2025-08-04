@@ -63,7 +63,7 @@
 		<artifactsDir>target/artifacts</artifactsDir>
 		<assertj.version>3.27.3</assertj.version>
 		<checkstyle.version>10.26.1</checkstyle.version>
-		<commons-csv.version>1.14.0</commons-csv.version>
+		<commons-csv.version>1.14.1</commons-csv.version>
 		<failsafe.version>3.3.2</failsafe.version>
 		<indriya.version>2.2.3</indriya.version>
 		<jackson.version>2.19.2</jackson.version>
