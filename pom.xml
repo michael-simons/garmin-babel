@@ -61,7 +61,7 @@
 	<properties>
 		<appassembler-maven-plugin.version>2.1.0</appassembler-maven-plugin.version>
 		<artifactsDir>target/artifacts</artifactsDir>
-		<assertj.version>3.27.3</assertj.version>
+		<assertj.version>3.27.4</assertj.version>
 		<checkstyle.version>10.26.1</checkstyle.version>
 		<commons-csv.version>1.14.0</commons-csv.version>
 		<failsafe.version>3.3.2</failsafe.version>
