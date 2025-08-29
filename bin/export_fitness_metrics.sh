@@ -51,6 +51,18 @@ COPY (
            avg(bloodPressure.pulse)::UTINYINT                                  AS bp_pulse
     FROM read_json('$GARMIN_ARCHIVE/DI_CONNECT/DI-Connect-Wellness/BloodPressureFile_*.json')
     GROUP by calendarDate
+  ), sleep_data AS (
+    SELECT calendarDate::date                          AS calendarDate,
+           sleepStartTimestampGMT::datetime            AS sleep_start,
+           sleepEndTimestampGMT::datetime              AS sleep_end,
+           date_diff('second', sleep_start, sleep_end) AS sleep_duration,
+           columns('(.*)Score') AS 'sleep_score_\1'
+    FROM (
+      SELECT * EXCLUDE (sleepScores),
+             unnest(sleepScores)
+      FROM read_json('$GARMIN_ARCHIVE/DI_CONNECT/DI-Connect-Wellness/*_sleepData.json')
+      WHERE sleepScores IS NULL OR sleepScores.overallScore <> 0
+    )
   )
   SELECT uds.calendarDate                                                                      AS ref_date,
          fa.chronologicalAge                                                                   AS chronological_age,
@@ -71,13 +83,15 @@ COPY (
          uds.lowestSpo2Value                                                                   AS lowest_spo2_value,
          bloodPressure.bp_systolic                                                             AS bp_systolic,
          bloodPressure.bp_diastolic                                                            AS bp_diastolic,
-         bloodPressure.bp_pulse                                                                AS bp_pulse
+         bloodPressure.bp_pulse                                                                AS bp_pulse,
+         sd.* EXCLUDE(calendarDate)
   FROM read_json('$GARMIN_ARCHIVE/DI_CONNECT/DI-Connect-Aggregator/UDSFile_*.json', auto_detect=true, union_by_name=true) uds
   LEFT OUTER JOIN weights w ON w.calendarDate = uds.calendarDate
   LEFT OUTER JOIN fitnessAge fa ON fa.calendarDate = uds.calendarDate
   LEFT OUTER JOIN vo2MaxRunning ON vo2MaxRunning.calendarDate = uds.calendarDate
   LEFT OUTER JOIN vo2MaxCycling ON vo2MaxCycling.calendarDate = uds.calendarDate
   LEFT OUTER JOIN bloodPressure ON bloodPressure.calendarDate = uds.calendarDate
+  LEFT OUTER JOIN sleep_data sd ON sd.calendarDate = uds.calendarDate
   ORDER BY uds.calendarDate ASC
 ) TO '/dev/stdout' (FORMAT CSV)
 "
