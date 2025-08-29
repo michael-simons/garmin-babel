@@ -55,7 +55,9 @@ COPY (
     SELECT calendarDate::date                          AS calendarDate,
            sleepStartTimestampGMT::datetime            AS sleep_start,
            sleepEndTimestampGMT::datetime              AS sleep_end,
-           date_diff('second', sleep_start, sleep_end) AS sleep_duration,
+           date_diff('second', sleep_start, sleep_end)
+             - ifNull(awakeSleepSeconds, 0)
+             - ifNull(unmeasurableSeconds, 0)          AS sleep_duration,
            columns('(.*)Score') AS 'sleep_score_\1'
     FROM (
       SELECT * EXCLUDE (sleepScores),
