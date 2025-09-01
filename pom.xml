@@ -62,7 +62,7 @@
 		<appassembler-maven-plugin.version>2.1.0</appassembler-maven-plugin.version>
 		<artifactsDir>target/artifacts</artifactsDir>
 		<assertj.version>3.27.4</assertj.version>
-		<checkstyle.version>11.0.0</checkstyle.version>
+		<checkstyle.version>11.0.1</checkstyle.version>
 		<commons-csv.version>1.14.1</commons-csv.version>
 		<failsafe.version>3.3.2</failsafe.version>
 		<indriya.version>2.2.3</indriya.version>
