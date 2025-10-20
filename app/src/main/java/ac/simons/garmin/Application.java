@@ -143,11 +143,8 @@ public final class Application implements Runnable {
 	@Option(names = {"--csv-format"}, description = "The CSV format to use; valid values are: ${COMPLETION-CANDIDATES} and the default is ${DEFAULT-VALUE}")
 	private CSVFormat.Predefined csvFormat = CSVFormat.Predefined.Default;
 
-	@Option(names = {"--backend-token:env"}, description = "The name of the variable holding the Garmin backend token, find the latter in your browser console when interacting with Garmin Connect, defaults to ${DEFAULT-VALUE}", hidden = true)
+	@Option(names = {"--backend-token:env"}, description = "The name of the variable holding the Garmin backend token, defaults to ${DEFAULT-VALUE}", hidden = true)
 	private String backendTokenEnv = "GARMIN_BACKEND_TOKEN";
-
-	@Option(names = {"--jwt:env"}, description = "The name of the variable holding the Garmin JWT, find the latter in your browsers cookie store after interacting with Garmin Connect, defaults to ${DEFAULT-VALUE}", hidden = true)
-	private String jwtEnv = "GARMIN_JWT";
 
 	@Parameters(index = "0", arity = "0..1", description = "Directory containing the extracted contents of the Garmin ZIP archive")
 	private Path archive;
@@ -309,9 +306,9 @@ public final class Application implements Runnable {
 		Double minElevationGain,
 		@Option(names = "--download",
 			defaultValue = "NONE",
-			description = "Download all matching activities in the given format; requires that both `GARMIN_BACKEND_TOKEN` and " +
-				"`GARMIN_JWT` variables are set; files will either be stored in the current directory or in parallel to " +
-				"the CSV file if the latter is specified and existing files will be overwritten; valid formats are ${COMPLETION-CANDIDATES}"
+			description = "Download all matching activities in the given format; requires that a `GARMIN_BACKEND_TOKEN` environment-variable is set; " +
+				"files will either be stored in the current directory or in parallel to the CSV file if the latter is specified and existing " +
+				"files will be overwritten; valid formats are ${COMPLETION-CANDIDATES}"
 		)
 		DownloadFormat downloadFormat,
 		@Option(names = "--concurrent-downloads", defaultValue = "8", description = "How many concurrent downloads are allowed")
@@ -413,7 +410,7 @@ public final class Application implements Runnable {
 	}
 
 	@Command(name = "download-activities", description = "Download all matching activities in the given format; requires that " +
-		"both `GARMIN_BACKEND_TOKEN` and `GARMIN_JWT` variables are set; files will either be stored in the current directory " +
+		"a `GARMIN_BACKEND_TOKEN` environment-variable is set; files will either be stored in the current directory " +
 		"or in parallel to the CSV file if the latter is specified and existing files will be overwritten; valid formats are " +
 		"${COMPLETION-CANDIDATES}")
 	void downloadActivities(
@@ -508,8 +505,8 @@ public final class Application implements Runnable {
 				}
 
 				var uri = switch (format) {
-					case FIT -> "https://connect.garmin.com/download-service/files/activity/%d".formatted(activity.garminId());
-					default -> "https://connect.garmin.com/download-service/export/%s/activity/%d".formatted(format.name().toLowerCase(Locale.ROOT), activity.garminId());
+					case FIT -> "https://connectapi.garmin.com/download-service/files/activity/%d".formatted(activity.garminId());
+					default -> "https://connectapi.garmin.com/download-service/export/%s/activity/%d".formatted(format.name().toLowerCase(Locale.ROOT), activity.garminId());
 				};
 
 				return createHttpRequest(tokens, uri);
@@ -571,8 +568,6 @@ public final class Application implements Runnable {
 		return HttpRequest
 			.newBuilder(URI.create(uri))
 			.header("Authorization", "Bearer %s".formatted(tokens.backend()))
-			.header("DI-Backend", "connectapi.garmin.com")
-			.header("Cookie", "JWT_FGP=%s".formatted(tokens.jwt()))
 			.header("User-Agent", "garmin-babel")
 			.GET()
 			.build();
@@ -616,7 +611,7 @@ public final class Application implements Runnable {
 	) throws IOException, InterruptedException {
 
 		var tokens = assertTokens();
-		var url = "https://connect.garmin.com/web-gateway/device-info/primary-training-device";
+		var url = "https://connectapi.garmin.com/device-service/deviceregistration/devices";
 
 		var request = createHttpRequest(tokens, url);
 		var result = this.httpClient.send(request, HttpResponse.BodyHandlers.ofInputStream());
@@ -631,7 +626,7 @@ public final class Application implements Runnable {
 				var out = AppendableHolder.of(target);
 				var csvPrinter = new CSVPrinter(out.value, csvFormat.getFormat().builder().setHeader(getHeader(RegisteredDevice.class)).build());
 			) {
-				((List<Map<String, Object>>) mapper.readValue(in, MAP_OF_OBJECTS).get("RegisteredDevices"))
+				mapper.readValue(in, LIST_MAP_OF_OBJECTS)
 					.stream().map(raw -> new RegisteredDevice(((Number) raw.get("unitId")).longValue(), (String) raw.get("productDisplayName"), (String) raw.get("serialNumber"), (String) raw.get("productSku")))
 					.forEach(registeredDevice -> printRecord(csvPrinter, registeredDevice));
 			}
@@ -759,10 +754,9 @@ public final class Application implements Runnable {
 	/**
 	 * Stuff to satisfy Garmin's api
 	 *
-	 * @param jwt     Actual frontend token
 	 * @param backend Garmin's backend
 	 */
-	record Tokens(String jwt, String backend) {
+	record Tokens(String backend) {
 	}
 
 	/**
@@ -770,11 +764,9 @@ public final class Application implements Runnable {
 	 * @throws NoSuchElementException if any token is missing
 	 */
 	private Tokens assertTokens() {
-		var jwt = Optional.ofNullable(System.getenv(this.jwtEnv));
 		var backend = Optional.ofNullable(System.getenv(this.backendTokenEnv));
 
 		return new Tokens(
-			jwt.map(String::trim).filter(Predicate.not(String::isBlank)).orElseThrow(() -> new NoSuchElementException("JWT not present in " + this.jwtEnv)),
 			backend.map(String::trim)
 				.filter(Predicate.not(String::isBlank))
 				.map(v -> v.replaceAll("(?i)Authorization: +Bearer +", ""))

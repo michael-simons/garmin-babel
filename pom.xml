@@ -262,6 +262,7 @@
 								<include>**</include>
 							</includes>
 							<excludes>
+								<exclude>**/.venv/**</exclude>
 								<exclude>**/*.geojson</exclude>
 								<exclude>**/*.adoc</exclude>
 								<exclude>**/*.sh</exclude>

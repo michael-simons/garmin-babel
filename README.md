@@ -115,31 +115,13 @@ Get all cycling activities longer than 75km prior to second half of 2022, prepar
 
 #### Downloading activities
 
-⚠️ There is no guarantee whatsoever that this feature keeps working. It's basically doing the same what a user would manually click the download link on Garmin Connect. I added a bit of jitter when downloading things to not hammer the service like bot would do, but use this feature of the tool on your own risk!
-
-While all activities are actually contained in the GDPR archive dump I didn't find any indicator which file belongs to which activity. This is sad, as I wanted to have them for my personal archive, at least some of them (Yes, I can go through the devices or the Garmin Connect page, but you know ;)).
-
-Do download things you have to log in to [Garmin Connect](https://connect.garmin.com). Once done, open your Browsers developer tools and find the cookie jar. Find a cookie named `JWT_FGP` and copy its value.
-
-Export it in your shell like this:
+You need to retrieve the Garmin Bearer Token for their `connectapi`. That used to be possible via the browser console, but that ceased to work in late October 2025.  My script `retrieve_garmin_tokens.sh` in `bin` uses [Garth](https://github.com/matin/garth). If you trust Garth, that script might work for you unless Garmin makes it even harder to automatically login. Source the script like this:
 
 ```bash
-export GARMIN_JWT=jwt_token_from_your_cookie_store_for_garmin
+source retrieve_garmin_tokens.sh <username> <password>
 ```
 
-Then in the _network_ tab of your Browsers developer tools (name might be different), clear all requests (or leave them, if you really want to search to the ton of requests the UI does). Then go to [activities](https://connect.garmin.com/modern/activities) for example and look in the requests tab for a request to `activities`. Look for something that says `HEADER` and in those headers look for `Authorization: Bearer ` and copy that (very long) very long header and export it, too.
-
-```bash
-export GARMIN_BACKEND_TOKEN=long_gibberish_token_from_one_of_the_requests
-```
-
-> [!TIP]
-> There's a script in the `bin` folder that automates this process. 
-> The script emulates a browser flow and does all the things for you, but there's absolutely no guarantee that it will keep on working when Garmin chances Connect-
-> In a regular shell you would use it like `source retrieve_garmin_tokens.sh <username> <password>`.
-> The script requires `cURL` and `jq`.
-
-Then, the `--download` option can be used like this:
+It creates the necessary environment variable `GARMIN_BACKEND_TOKEN` and then the `--download` option can be used like this:
 
 ```bash
 ./target/garmin-babel/bin/garmin-babel \
