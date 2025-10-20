@@ -601,7 +601,6 @@ public final class Application implements Runnable {
 		CSV
 	}
 
-	@SuppressWarnings("unchecked")
 	@Command(name = "dump-devices", description = "Dumps all registered garmin devices, requires an internet connection and JWT tokens")
 	void dumpDevices(
 		@Option(names = {"-f", "--format"}, required = true, description = "The format to dump, use RAW to get the original response from Garmin.", defaultValue = "CSV")
