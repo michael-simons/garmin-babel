@@ -1,3 +1,5 @@
+#!/bin/false
+
 #
 # This script requires Python3 and will install Garth on your behalf. Source it like this:
 #
