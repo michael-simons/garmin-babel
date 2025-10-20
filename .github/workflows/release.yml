@@ -28,7 +28,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: zulu
-          java-version: 24
+          java-version: '25'
 
       - name: 'Prepare git'
         run: git config --global core.autocrlf false
@@ -67,7 +67,7 @@ jobs:
         uses: graalvm/setup-graalvm@v1
         with:
           distribution: 'graalvm'
-          java-version: '24'
+          java-version: '25'
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: 'Prepare git'
@@ -103,7 +103,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: zulu
-          java-version: 24
+          java-version: '25'
 
       - name: 'Prepare git'
         run: git config --global core.autocrlf false

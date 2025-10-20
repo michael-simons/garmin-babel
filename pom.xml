@@ -67,7 +67,7 @@
 		<failsafe.version>3.3.2</failsafe.version>
 		<indriya.version>2.2.3</indriya.version>
 		<jackson.version>2.20.0</jackson.version>
-		<java.version>24</java.version>
+		<java.version>25</java.version>
 		<jreleaser-maven-plugin.version>1.20.0</jreleaser-maven-plugin.version>
 		<junit-jupiter.version>6.0.0</junit-jupiter.version>
 		<license-maven-plugin.version>5.0.0</license-maven-plugin.version>
