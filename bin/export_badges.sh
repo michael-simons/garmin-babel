@@ -47,7 +47,8 @@ COPY_BADGES_QUERY="
            category     : categories.badgeCategoryKey,
            difficulty_id: difficulties.badgeDifficultyId,
            difficulty   : difficulties.badgeDifficultyKey,
-           points       : difficulties.badgePoints
+           points       : difficulties.badgePoints,
+           premium      : earned.premium
     FROM read_json('https://connectapi.garmin.com/badge-service/badge/earned', columns = {
       badgeId: 'BIGINT',
       badgeUuid: 'VARCHAR',
@@ -60,7 +61,8 @@ COPY_BADGES_QUERY="
       badgePoints: 'BIGINT',
       badgeTypeIds: 'BIGINT[]',
       badgeCategoryId: 'BIGINT',
-      badgeDifficultyId: 'BIGINT'
+      badgeDifficultyId: 'BIGINT',
+      premium: 'BOOLEAN'
     }) earned
     NATURAL LEFT OUTER JOIN categories
     NATURAL LEFT OUTER JOIN difficulties
