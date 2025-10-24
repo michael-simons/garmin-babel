@@ -422,7 +422,16 @@ SET measured_on = date(str_to_date(@measured_on, '%Y-%m-%dT%H:%i:%sZ'))
 ;
 ```
 
-## Other tooling for (Garmin) FIT files
+## Other Garmin related tooling
+
+### Interacting with Garmin connect
+
+* [Garth, Garmin SSO auth + Connect Python client](https://github.com/matin/garth)
+* [Python: Garmin Connect](https://github.com/cyberjunky/python-garminconnect)
+
+### Tooling for (Garmin) FIT files
 
 * The official Garmin FIT SDK: https://developer.garmin.com/fit/overview/, the exports of `FIT CSV Tool` are a great fit for DuckDB analytics; the tool works well as GraalVM native image, too (`native-image -jar FitCSVTool.jar` gives you a nice standalone executable)
 * Rusty, but fit: https://github.com/meistermeier/rusty-but-fit Gerrits tool (and library) for parsing FIT data
+* [FitFile4j-Parser](https://codeberg.org/meistermeier/fitfile4j-parser)
+* [FitFile4j-CLI](https://codeberg.org/meistermeier/fitfile4j-cli)
