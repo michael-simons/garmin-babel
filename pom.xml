@@ -82,7 +82,7 @@
 		<maven.compiler.parameters>true</maven.compiler.parameters>
 		<maven.compiler.release>${java.version}</maven.compiler.release>
 		<maven.version>3.9.9</maven.version>
-		<mockito.version>5.20.0</mockito.version>
+		<mockito.version>5.21.0</mockito.version>
 		<moditect-maven-plugin.version>1.3.0.Final</moditect-maven-plugin.version>
 		<name-of-main-class>ac.simons.garmin.Application</name-of-main-class>
 		<native.maven.plugin.version>0.11.3</native.maven.plugin.version>
