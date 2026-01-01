@@ -45,7 +45,7 @@ COPY (
     WHERE currentBioAge IS NOT NULL
     QUALIFY rn <= 1
   ), bloodPressure AS (
-    SELECT make_date(metaData.calendarDate.year, metaData.calendarDate.monthValue, metaData.calendarDate.dayOfMonth) AS calendarDate,
+    SELECT make_date(metaData.calendarDate[1], metaData.calendarDate[2], metaData.calendarDate[3]) AS calendarDate,
            min(bloodPressure.systolic)  || '-' || max(bloodPressure.systolic)  AS bp_systolic,
            min(bloodPressure.diastolic) || '-' || max(bloodPressure.diastolic) AS bp_diastolic,
            avg(bloodPressure.pulse)::UTINYINT                                  AS bp_pulse
