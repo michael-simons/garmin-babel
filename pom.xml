@@ -92,6 +92,7 @@
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 		<sortpom-maven-plugin.version>4.0.0</sortpom-maven-plugin.version>
 		<unit-api.version>2.2</unit-api.version>
+		<versions-maven-plugin.version>2.20.1</versions-maven-plugin.version>
 	</properties>
 
 	<dependencyManagement>
@@ -154,6 +155,26 @@
 	<build>
 		<pluginManagement>
 			<plugins>
+				<plugin>
+					<groupId>org.codehaus.mojo</groupId>
+					<artifactId>versions-maven-plugin</artifactId>
+					<version>${versions-maven-plugin.version}</version>
+					<configuration>
+						<generateBackupPoms>false</generateBackupPoms>
+						<ruleSet>
+							<ignoreVersions>
+								<ignoreVersion>
+									<type>regex</type>
+									<version>(?i)(.+-SNAPSHOT|.+-M\d+|.+-?RC\d+|.+CR\d+)</version>
+								</ignoreVersion>
+								<ignoreVersion>
+									<type>regex</type>
+									<version>.+-(alpha|beta).+</version>
+								</ignoreVersion>
+							</ignoreVersions>
+						</ruleSet>
+					</configuration>
+				</plugin>
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-checkstyle-plugin</artifactId>
