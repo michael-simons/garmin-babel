@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
 
-    Copyright 2022-2025 the original author or authors.
+    Copyright 2022-2026 the original author or authors.
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -274,7 +274,7 @@
 						<factories>SCRIPT_STYLE</factories>
 					</mapping>
 					<properties>
-						<year>2022</year>
+						<year>2026</year>
 					</properties>
 					<licenseSets>
 						<licenseSet>
@@ -291,6 +291,7 @@
 								<exclude>**/*.txt</exclude>
 								<exclude>**/*.yaml</exclude>
 								<exclude>**/*.extension</exclude>
+								<exclude>**/*.BIN</exclude>
 								<exclude>**/org.mockito.plugins.MockMaker</exclude>
 								<exclude>**/package-info.java</exclude>
 								<exclude>**/assembly/README</exclude>
